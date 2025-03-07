@@ -1,0 +1,54 @@
+ ************************************************************
+ ***************** PARAMETERS FROM TLALOQUE *****************
+ ************************************************************
+ 
+  BOUNDARIES: 
+ 
+ Left Boundary: ReflectiveRight Boundary: Reflective
+ Down Boundary: ReflectiveTop Boundary: Reflective
+ Front Boundary: ReflectiveBack Boundary: Reflective
+ 
+ ************************************************************
+ ************************************************************
+ 
+  GENERAL PARAMETERS: 
+ 
+ Limiter: Van Leer
+ Courant-Friedrichs-Lewy condition (cfl):   0.40000000000000002     
+ Artificial viscosity constant (eta):    5.0000000000000001E-003
+ Order of solver:            2
+ MPI usage: false
+ Gravity: false
+ Number of output files:           10
+ Type of output file: VTK
+ Output files folder: ./DATA/
+ 
+ ************************************************************
+ ************************************************************
+ 
+  MESH PARAMETERS: 
+ 
+ Number of total physical cells in x dimension:           50
+ Number of total physical cells in y dimension:           50
+ Number of total physical cells in z dimension:           50
+ 
+ Position of first physical cell in the x axis:   -1.0000000000000000     
+ Position of last physical cell in the x axis:    1.0000000000000000     
+ Position of first physical cell in the y axis:   -1.0000000000000000     
+ Position of last physical cell in the y axis:    1.0000000000000000     
+ Position of first physical cell in the z axis:   -1.0000000000000000     
+ Position of last physical cell in the z axis:    1.0000000000000000     
+ 
+ Cell size in the x axis:    4.0000000000000001E-002
+ Cell size in the y axis:    4.0000000000000001E-002
+ Cell size in the z axis:    4.0000000000000001E-002
+ 
+ ************************************************************
+ ************************************************************
+ 
+  PHYSICS PARAMETERS: 
+ 
+ Heat capacity ratio gamma:    1.6666666666666667     
+ Mean particle mass mu:    1.0000000000000000     
+ Cooling: false
+ Total simulated time in seconds:    1.0000000000000000     

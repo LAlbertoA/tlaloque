@@ -1,0 +1,13 @@
+subroutine warmstart ()
+200SG022N006.vtk
+  use parameters
+  use globals
+
+  implicit none
+
+  character(len = 200)   :: fp
+  integer                :: unitin = 23
+
+  write(fp,'((a),i3.3,(a))') '/storage5/luis.arcos/out200SG/200SG',rank,'N006.vtk'
+
+  open(unit=unitin,file=trim(fp),status='old',access='stream',form='unformatted',convert='LITTLE_ENDIAN')
