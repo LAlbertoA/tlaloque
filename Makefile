@@ -64,29 +64,29 @@ endif
 OBJECTS_ALL = ${MODULES_MAIN} ${MODULES_USER} ${OBJECTS_MAIN}
 
 $(PROGRAM) : prebuild ${OBJECTS_ALL}
-	@echo Linking object files ...
-	@$(COMPILER) $(CFLAGS) $(OBJECTS_ALL) -o $@
-	@echo Cleaning up ...
-	@rm -f *.o *.mod source/*.o source/*.mod user/*.o user/*.mod
-	@echo "Done! (`date`)"
+    @echo Linking object files ...
+    @$(COMPILER) $(CFLAGS) ${OBJECTS_ALL} -o $@
+    @echo Cleaning up ...
+    @rm -f *.o *.mod source/*.o source/*.mod user/*.o user/*.mod
+    @echo "Done! (`date`)"
 
 prebuild :
-	@echo "$(PROGRAM) build started `date`"
+    @echo "$(PROGRAM) build started `date`"
 
 %.o : %.f90
-	@echo Compiling $^ ...
-	@$(COMPILER) $(CFLAGS) -c $^ -o $@
+    @echo Compiling $^ ...
+    @$(COMPILER) $(CFLAGS) -c $^ -o $@
 
 clean :
-	rm -f *.o *.mod source/*.o source/*.mod user/*.o user/*.mod
+    rm -f *.o *.mod source/*.o source/*.mod user/*.o user/*.mod
 
 cleanall :
-	rm -f *.o *.mod source/*.o source/*.mod user/*.o user/*.mod
-	rm -f $(PROGRAM).*
-	rm -f coldens
-	rm -f extract
-	rm -f DATA/*.bin
-	rm -f DATA/*.vtk
-	rm -f DATA/*.dat
-	rm -f DATA/*.log
-	rm -f DATA/*.visit
+    rm -f *.o *.mod source/*.o source/*.mod user/*.o user/*.mod
+    rm -f $(PROGRAM).*
+    rm -f coldens
+    rm -f extract
+    rm -f DATA/*.bin
+    rm -f DATA/*.vtk
+    rm -f DATA/*.dat
+    rm -f DATA/*.log
+    rm -f DATA/*.visit
