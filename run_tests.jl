@@ -3,7 +3,8 @@ using REPL.TerminalMenus
 
 include("tests_utilities.jl")
 
-tests_path = @__DIR__*"/tests"
+main_path = @__DIR__
+tests_path = joinpath(main_path,"tests")
 if !isdir(tests_path)
     mkdir(tests_path)
 end
@@ -46,7 +47,7 @@ for i in 1:length(tests_names)
         if tests_modules[i] == "Cooling"
             cool = true
         end
-        _create_makefile(mpi, grav, cool)
+        _create_makefile(mpi, grav, cool, paths_to_tests[i])
         #_create_parameters
         #_create_users
     end
