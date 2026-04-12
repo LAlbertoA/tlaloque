@@ -203,7 +203,44 @@ function _create_makefile(mpi,gravity,cooling, tpath)
     end
 end
 
-function _create_parameters(boundaries, cells, nout, size, Gconst, cfl, eta, tfin, procs)
+function _parameters(name)
+
+    if name == "Sod"
+        boundaries = ["LB", "RB", "TB", "DB", "FB", "BB"]
+        cells = [100,100,100]
+        nout = 1
+        size = 0
+        Gconst = "GR"
+        cfl = 0.8
+        eta = 0.5e-2
+        tfin = 1.9e5*YEAR
+    elseif name == "Sedov-Taylor"
+        boundaries = ["LB", "RB", "TB", "DB", "FB", "BB"]
+        cells = [50,50,50]
+        nout = 10
+        size = 6
+        Gconst = 0.0
+        cfl = 0.4
+        eta = 0.5e-2
+        tfin = 1.9e5*YEAR
+    elseif name == "Blast Wave"
+        boundaries = ["LB", "RB", "TB", "DB", "FB", "BB"]
+        cells = [50,50,50]
+        nout = 10
+        size = 6
+        Gconst = 0.0
+        cfl = 0.4
+        eta = 0.5e-2
+        tfin = 1.9e5*YEAR
+    end
+
+    return boundaries, cells, nout, size, Gconst, cfl, eta, tfin
+
+end
+
+function _create_parameters(name)
+
+    boundaries, cells, nout, size, Gconst, cfl, eta, tfin = _parameters(name)
 
     open("parameters.f90", "w") do f
         write(f, """
@@ -315,7 +352,7 @@ function _create_parameters(boundaries, cells, nout, size, Gconst, cfl, eta, tfi
     end
 end
 
-function _create_user()
+function _create_user(name)
 
     open("user.f90", "w") do f
         write(f, """
@@ -351,7 +388,7 @@ function _create_user()
                     integer                                                                    :: i
 
                     call ExplosionPuntual()
-                    
+
                 #ifdef GRAV
                     call pointmass_potential(PHIP)
                 #endif     
