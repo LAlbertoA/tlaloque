@@ -208,7 +208,7 @@ function _parameters(name)
     if name == "Sod"
         boundaries = ["OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"]
         cells = [100,100,100]
-        physical_size = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        physical_size = [-0.25, 0.25, -0.25, 0.25, -0.25, 0.25]
         nout = 2
         size = 0
         Gconst = "GR"
@@ -218,7 +218,7 @@ function _parameters(name)
     elseif name == "Sedov-Taylor"
         boundaries = ["LB", "RB", "TB", "DB", "FB", "BB"]
         cells = [100,100,100]
-        physical_size = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        physical_size = [-5.0, 5.0, -5.0, 5.0, -5.0, 5.0]
         nout = 2
         size = 0
         Gconst = "GR"
@@ -228,7 +228,7 @@ function _parameters(name)
     elseif name == "Radiative_Sedov-Taylor"
         boundaries = ["LB", "RB", "TB", "DB", "FB", "BB"]
         cells = [100,100,100]
-        physical_size = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        physical_size = ["-30.0*PC", "30.0*PC", "-30.0*PC", "30.0*PC", "-30.0*PC", "30.0*PC"]
         nout = 10
         size = 0
         Gconst = "GR"
@@ -238,7 +238,7 @@ function _parameters(name)
     elseif name == "Gravitational_Potential_Accuracy_Test_(Multigrid)"
         boundaries = ["LB", "RB", "TB", "DB", "FB", "BB"]
         cells = [100,100,100]
-        physical_size = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        physical_size = [-0.5, 0.5, -0.5, 0.5, -0.5, 0.5]
         nout = 1
         size = 0
         Gconst = "GR"
@@ -248,7 +248,7 @@ function _parameters(name)
     elseif name == "Evrard's_Collapse"
         boundaries = ["LB", "RB", "TB", "DB", "FB", "BB"]
         cells = [100,100,100]
-        physical_size = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        physical_size = [-2.0, 2.0, -2.0, 2.0, -2.0, 2.0]
         nout = 10
         size = 0
         Gconst = "GR"
@@ -258,7 +258,7 @@ function _parameters(name)
     elseif name == "Truelove_Collapse_Test"
         boundaries = ["LB", "RB", "TB", "DB", "FB", "BB"]
         cells = [100,100,100]
-        physical_size = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        physical_size = ["-535.0*AU", "535.0*AU", "-535.0*AU", "535.0*AU", "-535.0*AU", "535.0*AU"]
         nout = 10
         size = 0
         Gconst = "GR"
