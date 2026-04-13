@@ -15,7 +15,7 @@ function _run_menu()
         "Gresho Vortex", "Noh Problem", "Double Mach Reflection", "Wind Tunnel with a Step"]
     test_hydro_cooling_options = ["Radiative Sedov-Taylor"]
     test_gravity_options = ["Gravitational Potential Accuracy Test (Multigrid)", "Point Potential Test"]
-    test_hydro_gravity_options = ["Jeans Instability Test", "Gravitational Collapse Test", "Evrard's collapse", "Truelove Collapse Test"]
+    test_hydro_gravity_options = ["Jeans Instability Test", "Gravitational Collapse Test", "Evrard's Collapse", "Truelove Collapse Test"]
 
     ## All tests
     tests = cat("Hydro: " .* test_hydro_options, 
@@ -206,41 +206,74 @@ end
 function _parameters(name)
 
     if name == "Sod"
+        boundaries = ["OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"]
+        cells = [100,100,100]
+        physical_size = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        nout = 2
+        size = 0
+        Gconst = "GR"
+        cfl = 0.8
+        eta = 0.5e-2
+        tfin = "0.12"
+    elseif name == "Sedov-Taylor"
         boundaries = ["LB", "RB", "TB", "DB", "FB", "BB"]
         cells = [100,100,100]
+        physical_size = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        nout = 2
+        size = 0
+        Gconst = "GR"
+        cfl = 0.9
+        eta = 0.5e-2
+        tfin = "0.1"
+    elseif name == "Radiative_Sedov-Taylor"
+        boundaries = ["LB", "RB", "TB", "DB", "FB", "BB"]
+        cells = [100,100,100]
+        physical_size = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        nout = 10
+        size = 0
+        Gconst = "GR"
+        cfl = 0.8
+        eta = 0.5e-2
+        tfin = "50*YEAR*1.e3"
+    elseif name == "Gravitational_Potential_Accuracy_Test_(Multigrid)"
+        boundaries = ["LB", "RB", "TB", "DB", "FB", "BB"]
+        cells = [100,100,100]
+        physical_size = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
         nout = 1
         size = 0
         Gconst = "GR"
         cfl = 0.8
         eta = 0.5e-2
-        tfin = 1.9e5*YEAR
-    elseif name == "Sedov-Taylor"
+        tfin = "0"
+    elseif name == "Evrard's_Collapse"
         boundaries = ["LB", "RB", "TB", "DB", "FB", "BB"]
-        cells = [50,50,50]
+        cells = [100,100,100]
+        physical_size = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
         nout = 10
-        size = 6
-        Gconst = 0.0
-        cfl = 0.4
+        size = 0
+        Gconst = "GR"
+        cfl = 0.8
         eta = 0.5e-2
-        tfin = 1.9e5*YEAR
-    elseif name == "Blast Wave"
+        tfin = "3"
+    elseif name == "Truelove_Collapse_Test"
         boundaries = ["LB", "RB", "TB", "DB", "FB", "BB"]
-        cells = [50,50,50]
+        cells = [100,100,100]
+        physical_size = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
         nout = 10
-        size = 6
-        Gconst = 0.0
-        cfl = 0.4
+        size = 0
+        Gconst = "GR"
+        cfl = 0.8
         eta = 0.5e-2
-        tfin = 1.9e5*YEAR
+        tfin = "2110*YEAR"
     end
 
-    return boundaries, cells, nout, size, Gconst, cfl, eta, tfin
+    return boundaries, cells, physical_size, nout, size, Gconst, cfl, eta, tfin
 
 end
 
 function _create_parameters(name)
 
-    boundaries, cells, nout, size, Gconst, cfl, eta, tfin = _parameters(name)
+    boundaries, cells, physical_size, nout, size, Gconst, cfl, eta, tfin = _parameters(name)
 
     open("parameters.f90", "w") do f
         write(f, """
@@ -253,25 +286,25 @@ function _create_parameters(name)
                 include "mpif.h"
             #endif
                                                         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                integer, parameter  :: LB = BC_REFLECTIVE    !!                           Boundaries                           !!
-                integer, parameter  :: RB = BC_REFLECTIVE    !!  LB = Left Boundary   DB = Down Boundary  FB = Front Boundary  !!
-                integer, parameter  :: TB = BC_REFLECTIVE    !!  RB = Right Boundary  TB = Top Boundary   BB = Back Boundary   !!
-                integer, parameter  :: DB = BC_REFLECTIVE    !!           (x)                 (y)                  (z)         !!
-                integer, parameter  :: FB = BC_REFLECTIVE    !!                        Type of boundary                        !!
-                integer, parameter  :: BB = BC_REFLECTIVE    !!  1 = Outflow    2 = Reflective    3 = Periodic    4 = Inflow   !!
+                integer, parameter  :: LB = BC_$boundaries[1]    !!                           Boundaries                           !!
+                integer, parameter  :: RB = BC_$boundaries[2]    !!  LB = Left Boundary   DB = Down Boundary  FB = Front Boundary  !!
+                integer, parameter  :: TB = BC_$boundaries[3]    !!  RB = Right Boundary  TB = Top Boundary   BB = Back Boundary   !!
+                integer, parameter  :: DB = BC_$boundaries[4]    !!           (x)                 (y)                  (z)         !!
+                integer, parameter  :: FB = BC_$boundaries[5]    !!                        Type of boundary                        !!
+                integer, parameter  :: BB = BC_$boundaries[6]    !!  1 = Outflow    2 = Reflective    3 = Periodic    4 = Inflow   !!
                                                         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
                 integer, parameter  :: limtr = LIMITER_VANLEER  !! Limiter
 
                 integer, parameter  :: ndim = 3           !! Number of dimensions of the problem (Currently only supporting 3).
                 integer, parameter  :: neq = 5            !! Number of equations to solve (Currently only supporting 5).
-                integer, parameter  :: size = 6           !! 
-                integer, parameter  :: nxtot = 50!4*2**size  !! Number of cells in each axis. If using self-gravity, nx, ny and nz
-                integer, parameter  :: nytot = 50!4*2**size  !! MUST be a power of 2 with `size` it's power: nx, ny, nz = 2**size.
-                integer, parameter  :: nztot = 50!4*2**size  !! If using MPI and self-gravity, nx, ny and nz MUST be a power of 2
+                integer, parameter  :: size = $size           !! 
+                integer, parameter  :: nxtot = $cells[1]  !! Number of cells in each axis. If using self-gravity, nx, ny and nz
+                integer, parameter  :: nytot = $cells[2]  !! MUST be a power of 2 with `size` it's power: nx, ny, nz = 2**size.
+                integer, parameter  :: nztot = $cells[3]  !! If using MPI and self-gravity, nx, ny and nz MUST be a power of 2
                 integer, parameter  :: choice = 2         !! like so: nx, ny, nz = (mpix, mpiy, mpiz)*2**size
 
-                integer, parameter      :: num_out = 10  !! Number of output files 
+                integer, parameter      :: num_out = $nout  !! Number of output files 
                 integer, parameter      :: outfile = VTK  !! Type of output. Options are VTK, DAT, BIN
                 character(*), parameter :: outputpath = './DATA/'
             #ifdef COOL
@@ -280,18 +313,18 @@ function _create_parameters(name)
                 character(*), parameter :: posfile = './posest75.dat' !! Star positions file for winds and point_gravity modules
                 integer, parameter      :: nghost = 2   !! Order
 
-                real, parameter  :: xl = -1.0!*PC           !! Position of first physical cell in the x axis
-                real, parameter  :: xr = 1.0!*PC            !! Position of last physical cell in the x axis
-                real, parameter  :: yl = -1.0!*PC           !! Position of first physical cell in the y axis
-                real, parameter  :: yr = 1.0!*PC            !! Position of last physical cell in the y axis
-                real, parameter  :: zl = -1.0!*PC           !! Position of first physical cell in the z axis
-                real, parameter  :: zr = 1.0!*PC            !! Position of last physical cell in the z axis
+                real, parameter  :: xl = $physical_size[1]           !! Position of first physical cell in the x axis
+                real, parameter  :: xr = $physical_size[2]           !! Position of last physical cell in the x axis
+                real, parameter  :: yl = $physical_size[3]           !! Position of first physical cell in the y axis
+                real, parameter  :: yr = $physical_size[4]           !! Position of last physical cell in the y axis
+                real, parameter  :: zl = $physical_size[5]           !! Position of first physical cell in the z axis
+                real, parameter  :: zr = $physical_size[6]           !! Position of last physical cell in the z axis
                 real, parameter  :: gamma = 5.0/3.0        !! Specific heat ratio. C_p/C_v
                 real, parameter  :: mu0 = 1.0              !! Mean particule mass
-                real, parameter  :: Gconst = GR            !! Gravitational constant. If using physical units, GR = 6.67430e-8 dyn cm^2/g^2
-                real, parameter  :: cfl = 0.4              !! Courant-Friedrichs-Lewy condition. 0 < cfl < 1
-                real, parameter  :: eta = 0.5e-2           !! Artificial Viscosity. 0 < eta < 0.5
-                real, parameter  :: tfin = 1!1.9e5*YEAR      !! Total simulated time.
+                real, parameter  :: Gconst = $Gconst       !! Gravitational constant. If using physical units, GR = 6.67430e-8 dyn cm^2/g^2
+                real, parameter  :: cfl = $cfl              !! Courant-Friedrichs-Lewy condition. 0 < cfl < 1
+                real, parameter  :: eta = $eta              !! Artificial Viscosity. 0 < eta < 0.5
+                real, parameter  :: tfin = $tfin            !! Total simulated time.
                 real, parameter  :: cooling_limit = 0.5
                             !!! MPI Constants definitions !!!
             #ifdef MPIP          
