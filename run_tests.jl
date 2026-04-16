@@ -62,6 +62,7 @@ for i in 1:length(tests_names)
         mpi = false
         grav = false
         cool = false
+        tname = "tlaloque_"*split(paths_to_tests[i], "/")[end]
         if tests_modules[i] == "Gravity" || tests_modules[i] == "Hydro-Gravity"
             grav = true
         end
@@ -71,11 +72,18 @@ for i in 1:length(tests_names)
         println("Running test: ", tests_names[i])
         println("####################################################################################")
         println("Creating Makefile, parameters.f90 and user.f90 files in ", paths_to_tests[i], "\n")
-        _create_makefile(mpi, grav, cool, paths_to_tests[i])
+        _create_makefile(mpi, grav, cool, paths_to_tests[i], tname)
         _create_parameters(tests_names[i])
         _create_user(tests_names[i])
         println("Files created. Compiling and running the test.\n")
         run(`make clean`)
         run(`make`)
+        println("Checking for DATA folder and creating it if it doesn't exist.\n")
+        if !isdir("DATA")
+            mkdir("DATA")
+        end
+        println("Running the test and saving outputs to DATA folder.\n")
+        run(pipeline(`./$tname`, "DATA/output.txt"))
+        println("Test run completed. Comparing results with expected results.\n")
     end
 end

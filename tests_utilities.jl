@@ -90,12 +90,11 @@ function _run_menu()
     end
 end
 
-function _create_makefile(mpi,gravity,cooling, tpath)
+function _create_makefile(mpi,gravity,cooling,tpath,tname)
     
     mpi_string = "N"
     gravity_string = "N"
     cooling_string = "N"
-    
     if mpi==true
         mpi_string = "Y"
     end
@@ -107,7 +106,7 @@ function _create_makefile(mpi,gravity,cooling, tpath)
     end
     open("Makefile", "w") do f
         write(f, """
-            PROGRAM= tlaloque
+            PROGRAM= $tname
             COMPILER= gfortran
             ######  USER_FLAGS for gfortran:
             #USER_FLAGS= -O3 -Wall -fcheck=all
