@@ -42,6 +42,45 @@ elseif continue_options_selected == -1
     exit()
 end
 
+mpi_options = ["Run tests without MPI", "Run tests with MPI"]
+mpi_options_menu = RadioMenu(mpi_options, pagesize = 2)
+mpi_options_selected = request("Do you want to run tests with MPI (multiple processes)?", mpi_options_menu)
+mpi = false
+if mpi_options_selected == 2
+    println("Tests will be run with MPI. Make sure you have MPI installed and configured in your system.\n")
+    mpirun_path = readchomp(`which mpirun`)
+    if mpirun_path == ""
+        println("mpirun not found. Please make sure you have MPI installed and configured in your system.\n")
+        exit()
+    else
+        println("mpirun path: ", mpirun_path, "\n")
+        nprocs = readchomp(`nproc`)
+        println("Number of processors available: ", nprocs, "\n")
+        println("Running a test MPI command to check if MPI is working properly.\n")
+        try
+            run(`mpirun -np 4 echo "MPI is working properly"`)
+        catch e
+            println("MPI test command failed. Please make sure you have MPI installed and configured in your system.\n")
+            println("Error message: ", e, "\n")
+            exit()
+        end
+        println("MPI is working properly. Current version of tlaloque only supports MPI with N^3 processes with N an integer.\n")
+        if nprocs < 8
+            println("Not enough processors available for MPI. Please make sure you have at least 8 processors available in your system.\n")
+            println("Defaulting to run tests with one process.\n")
+        else
+            println("Running tests with MPI using 8 processes.\n")
+            nprocs_use = 8
+        end
+    end
+    mpi = true
+elseif mpi_options_selected == 1
+    println("Tests will be run without MPI. This makes the tests run slower but is easier to set up.\n")
+elseif mpi_options_selected == -1
+    println("Tests Aborted.")
+    exit()
+end
+
 if !isdir(tests_path)
     mkdir(tests_path)
 end
@@ -59,7 +98,6 @@ for i in 1:length(tests_names)
         mkdir(paths_to_tests[i])
     end
     cd(paths_to_tests[i]) do
-        mpi = false
         grav = false
         cool = false
         tname = "tlaloque_"*split(paths_to_tests[i], "/")[end]
@@ -83,7 +121,11 @@ for i in 1:length(tests_names)
             mkdir("DATA")
         end
         println("Running the test and saving outputs to DATA folder.\n")
-        run(pipeline(`./$tname`, "DATA/output.txt"))
+        if mpi == true
+            run(pipeline(`mpirun -np $nprocs_use ./$tname`, "DATA/output.txt"))
+        else
+            run(pipeline(`./$tname`, "DATA/output.txt"))
+        end
         println("Test run completed. Comparing results with expected results.\n")
     end
 end
