@@ -125,7 +125,7 @@ for i in 1:length(tests_names)
         if mpi == true
             run(pipeline(`mpirun -np $nprocs_use ./$tname`, "DATA/output.txt"))
         else
-            run(pipeline(`./$tname`, "DATA/output.txt"))
+            run(pipeline(`./$tname`, `tee DATA/output.txt`))
         end
         println("Test run completed. Comparing results with expected results.\n")
         analyze(tests_names[i])

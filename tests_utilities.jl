@@ -213,14 +213,14 @@ function _parameters(name)
 
     if name == "Sod"
         boundaries = ["OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"]
-        cells = [100,100,100]
+        cells = [150,150,150]
         physical_size = [-0.25, 0.25, -0.25, 0.25, -0.25, 0.25]
         gamma = "5.0/3.0"
         nout = 2
         size = 0
         Gconst = "GR"
         cfl = 0.8
-        eta = 0.5e-2
+        eta = 0.9e-1
         tfin = "0.12"
     elseif name == "Sedov-Taylor"
         boundaries = ["OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"]
