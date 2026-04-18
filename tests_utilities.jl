@@ -11,12 +11,13 @@ function _run_menu()
     test_module_options = ["Hydrodynamics", "Hydrodynamics with Cooling", "Gravity", "Hydrodynamics with Gravity"]
 
     ## Tests in each module
-    test_hydro_options = ["Sod", "Sedov-Taylor", "Blast Wave", "Kelvin-Helmholtz Instability", "Rayleigh-Taylor Instability", "Orszag-Tang Vortex",
-        "Gresho Vortex", "Noh Problem", "Double Mach Reflection", "Wind Tunnel with a Step"]
+    test_hydro_options = ["Sod", "Sedov-Taylor"]
+    ## Future hydro tests:  "Blast Wave", "Kelvin-Helmholtz Instability", "Rayleigh-Taylor Instability", "Orszag-Tang Vortex",
+    ##    "Gresho Vortex", "Noh Problem", "Double Mach Reflection", "Wind Tunnel with a Step"
     test_hydro_cooling_options = ["Radiative Sedov-Taylor"]
     test_gravity_options = ["Gravitational Potential Accuracy Test (Multigrid)", "Point Potential Test"]
-    test_hydro_gravity_options = ["Jeans Instability Test", "Gravitational Collapse Test", "Evrard's Collapse", "Truelove Collapse Test"]
-
+    test_hydro_gravity_options = ["Evrard's Collapse", "Truelove Collapse Test"]
+    ## Future hydro-gravity tests: "Jeans Instability Test", "Gravitational Collapse Test",
     ## All tests
     tests = cat("Hydro: " .* test_hydro_options, 
                 "Cooling: " .* test_hydro_cooling_options,
@@ -87,6 +88,12 @@ function _run_menu()
             println(" - ", tests[test])
         end
         return tests, [i in tests_choice for i in 1:length(tests)]
+    elseif choice == 4
+        println("Exiting.")
+        exit()
+    elseif choice == -1
+        println("Exiting.")
+        exit()
     end
 end
 

@@ -2,6 +2,7 @@ import REPL
 using REPL.TerminalMenus
 
 include("tests_utilities.jl")
+include("tests_analisis.jl")
 
 main_path = @__DIR__
 tests_path = joinpath(main_path,"tests")
@@ -127,5 +128,6 @@ for i in 1:length(tests_names)
             run(pipeline(`./$tname`, "DATA/output.txt"))
         end
         println("Test run completed. Comparing results with expected results.\n")
+        analyze(tests_names[i])
     end
 end
