@@ -230,8 +230,8 @@ function _parameters(name)
         nout = 2
         size = 0
         Gconst = "GR"
-        cfl = 0.9
-        eta = 0.5e-2
+        cfl = 0.8
+        eta = 0.9e-1
         tfin = "0.1"
     elseif name == "Radiative_Sedov-Taylor"
         boundaries = ["OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"]
@@ -262,7 +262,7 @@ function _parameters(name)
         gamma = "5.0/3.0"
         nout = 10
         size = 0
-        Gconst = "GR"
+        Gconst = 1.0
         cfl = 0.8
         eta = 0.5e-2
         tfin = "3"

@@ -30,7 +30,7 @@ contains
              call zcoord(k,z)
              do s = 0,Nstrs-1
                 r = sqrt((posstars(0,s)-x)**2 + (posstars(1,s)-y)**2 + (posstars(2,s)-z)**2)
-                phi(i,j,k) = phi(i,j,k) + GR*starsmass(s)/r
+                phi(i,j,k) = phi(i,j,k) - GR*starsmass(s)/r
              enddo
           enddo
        enddo

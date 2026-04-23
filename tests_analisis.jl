@@ -67,3 +67,53 @@ function _sedov_analisis()
         end
     end
 end
+
+function _radiative_sedov_analisis()
+    files = readdir("./DATA")
+    c = 0
+    for i in files
+        if i != "output.txt"
+            c += 1
+            m = LoadVTK("DATA/"*i);
+            halfsize_index = floor.(Int,[m.nx, m.ny, m.nz]./2)
+
+            f, ax, h = heatmap(m.x, m.y, m.pointData[1,:,:,halfsize_index[3]], axis = (title = "Slice at $(halfsize_index[3]) in z",
+                xlabel = L"x", ylabel = L"y"))
+            cb = Colorbar(f[1,2], h, label = L"\rho")
+            
+            save("Radiative_Sedov"*string(c,base=10,pad=3)*".png", f)
+
+            r = [sign(i)*sqrt(i^2 + i^2 + i^2) for i in m.x]
+            rho = [m.pointData[1,i,i,i] for i in 1:m.nx]
+
+            f, ax = lines(r, rho, axis = (title = "Diagonal profile", xlabel = L"r", ylabel = L"\rho"))
+
+            save("Radiative_Sedov_profile"*string(c,base=10,pad=3)*".png", f)
+        end
+    end
+end
+
+function _evrard_collapse_analisis()
+    files = readdir("./DATA")
+    c = 0
+    for i in files
+        if i != "output.txt"
+            c += 1
+            m = LoadVTK("DATA/"*i);
+            halfsize_index = floor.(Int,[m.nx, m.ny, m.nz]./2)
+
+            f, ax, h = heatmap(m.x, m.y, m.pointData[1,:,:,halfsize_index[3]], axis = (title = "Slice at $(halfsize_index[3]) in z",
+                xlabel = L"x", ylabel = L"y"))
+            cb = Colorbar(f[1,2], h, label = L"\rho")
+            
+            save("Evrard_Collapse"*string(c,base=10,pad=3)*".png", f)
+
+            r = [sign(i)*sqrt(i^2 + i^2 + i^2) for i in m.x]
+            rho = [m.pointData[1,i,i,i] for i in 1:m.nx]
+
+            f, ax = lines(r, rho, axis = (title = "Diagonal profile", xlabel = L"r", ylabel = L"\rho"))
+
+            save("Evrard_Collapse_profile"*string(c,base=10,pad=3)*".png", f)
+        end
+    end
+end
