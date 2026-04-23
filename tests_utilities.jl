@@ -224,7 +224,7 @@ function _parameters(name)
         tfin = "0.12"
     elseif name == "Sedov-Taylor"
         boundaries = ["OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"]
-        cells = [100,100,100]
+        cells = [150,150,150]
         physical_size = [-5.0, 5.0, -5.0, 5.0, -5.0, 5.0]
         gamma = "5.0/3.0"
         nout = 2
@@ -235,7 +235,7 @@ function _parameters(name)
         tfin = "0.1"
     elseif name == "Radiative_Sedov-Taylor"
         boundaries = ["OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"]
-        cells = [100,100,100]
+        cells = [150,150,150]
         physical_size = ["-30.0*PC", "30.0*PC", "-30.0*PC", "30.0*PC", "-30.0*PC", "30.0*PC"]
         gamma = "5.0/3.0"
         nout = 10
@@ -460,7 +460,7 @@ function _write_initconds(name)
 
             real, parameter       :: rhoO = 1.0, uO = 0.0, vO = 0.0, wO = 0.0, pO = 1.5e-20*(gamma-1.0)
             real, parameter       :: rhoI = 1.0, uI = 0.0, vI = 0.0, wI = 0.0
-            real, parameter       :: xc = 0.0, yc = 0.0, zc = 0.0, pIn = 4.0e7*(gamma-1.0)
+            real, parameter       :: xc = 0.0, yc = 0.0, zc = 0.0, pIn = 2.481617647e6*(gamma-1.0)
             integer               :: i, j, k
             real                  :: x, y, z, r
 
@@ -475,18 +475,18 @@ function _write_initconds(name)
                         call ycoord(j, y)
                         call zcoord(k, z)
                         r = sqrt(x**2+y**2+z**2)
-                        if (r > 3.5*dx) then
-                            U(1,i,j,k) = rhoO
-                            U(2,i,j,k) = rhoO*uO
-                            U(3,i,j,k) = rhoO*vO
-                            U(4,i,j,k) = rhoO*wO
-                            U(5,i,j,k) = 0.5*rhoO*(uO**2 + vO**2 + wO**2)+pO/(gamma-1.0)
-                        else
+                        if (r < 0.2) then
                             U(1,i,j,k) = rhoI
                             U(2,i,j,k) = rhoI*uI
                             U(3,i,j,k) = rhoI*vI
                             U(4,i,j,k) = rhoI*wI
                             U(5,i,j,k) = 0.5*rhoI*(uI**2 + vI**2 + wI**2)+pIn/(gamma-1.0)
+                        else
+                            U(1,i,j,k) = rhoO
+                            U(2,i,j,k) = rhoO*uO
+                            U(3,i,j,k) = rhoO*vO
+                            U(4,i,j,k) = rhoO*wO
+                            U(5,i,j,k) = 0.5*rhoO*(uO**2 + vO**2 + wO**2)+pO/(gamma-1.0)
                         endif
                     enddo
                 enddo
