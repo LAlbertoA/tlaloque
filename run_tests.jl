@@ -129,5 +129,8 @@ for i in 1:length(tests_names)
         end
         println("Test run completed. Comparing results with expected results.\n")
         analyze(tests_names[i])
+        println("Analysis completed. Results saved to ", paths_to_tests[i], "\n")
+        println("####################################################################################")
+        println("####################################################################################\n")
     end
 end
