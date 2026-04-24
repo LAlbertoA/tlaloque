@@ -9,6 +9,9 @@
 #ifdef MPIP
     use parameters, only: mpix, mpiy, mpiz, LB, RB, DB, TB, FB, BB
 #endif
+#ifdef COOL
+    use coolingh
+#endif
     implicit none
     
 #ifdef MPIP
@@ -113,6 +116,10 @@
        Residue(level)%data = 0.0
        
     end do
+#endif
+
+#ifdef COOL
+    call loaddata()
 #endif
     if (logged .eqv. .true. .and. rank == 0) then
        open(unit=logu,file=logfile,status='unknown')

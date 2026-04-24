@@ -233,7 +233,7 @@ function _parameters(name)
         cfl = 0.8
         eta = 0.9e-1
         tfin = "0.1"
-    elseif name == "Radiative_Sedov-Taylor"
+    elseif name == "Radiative Sedov-Taylor"
         boundaries = ["OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"]
         cells = [150,150,150]
         physical_size = ["-30.0*PC", "30.0*PC", "-30.0*PC", "30.0*PC", "-30.0*PC", "30.0*PC"]
@@ -242,9 +242,9 @@ function _parameters(name)
         size = 0
         Gconst = "GR"
         cfl = 0.8
-        eta = 0.5e-2
+        eta = 0.9e-1
         tfin = "50*YEAR*1.e3"
-    elseif name == "Gravitational_Potential_Accuracy_Test_(Multigrid)"
+    elseif name == "Gravitational Potential Accuracy Test (Multigrid)"
         boundaries = ["OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"]
         cells = [100,100,100]
         physical_size = [-0.5, 0.5, -0.5, 0.5, -0.5, 0.5]
@@ -255,7 +255,7 @@ function _parameters(name)
         cfl = 0.8
         eta = 0.5e-2
         tfin = "0"
-    elseif name == "Evrard's_Collapse"
+    elseif name == "Evrard's Collapse"
         boundaries = ["REFLECTIVE", "REFLECTIVE", "REFLECTIVE", "REFLECTIVE", "REFLECTIVE", "REFLECTIVE"]
         cells = [100,100,100]
         physical_size = [-2.0, 2.0, -2.0, 2.0, -2.0, 2.0]
@@ -266,7 +266,7 @@ function _parameters(name)
         cfl = 0.8
         eta = 0.5e-2
         tfin = "3"
-    elseif name == "Truelove_Collapse_Test"
+    elseif name == "Truelove Collapse Test"
         boundaries = ["OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"]
         cells = [100,100,100]
         physical_size = ["-535.0*AU", "535.0*AU", "-535.0*AU", "535.0*AU", "-535.0*AU", "535.0*AU"]
@@ -320,7 +320,7 @@ function _create_parameters(name)
             integer, parameter      :: outfile = VTK  !! Type of output. Options are VTK, DAT, BIN
             character(*), parameter :: outputpath = './DATA/'
         #ifdef COOL
-            character(*), parameter :: cooling_file = '../Z1.0.dat' !! Cooling table file location for atomic cooling
+            character(*), parameter :: cooling_file = '../../Z1.0.dat' !! Cooling table file location for atomic cooling
         #endif
             character(*), parameter :: posfile = './posest75.dat' !! Star positions file for winds and point_gravity modules
             integer, parameter      :: nghost = 2   !! Order
@@ -496,7 +496,7 @@ function _write_initconds(name)
         #endif
         end subroutine initflowSedov
         """
-    elseif name == "Radiative_Sedov-Taylor"
+    elseif name == "Radiative Sedov-Taylor"
         initconds_name = "initflowRadiativeSedov"
         init_conds = """
         subroutine initflowRadiativeSedov()
@@ -508,8 +508,8 @@ function _write_initconds(name)
             implicit none
 
             real, parameter       :: rhoO = AMU*1.0, uO = 0.0, vO = 0.0, wO = 0.0, pO = (1.0*AMU*KB*10**4)/AMU
-            real, parameter       :: rhoI = AMU*1.0, uI = 0.0, vI = 0.0, wI = 0.0
-            real, parameter       :: xc = 0.0, yc = 0.0, zc = 0.0, pIn = 9.00443695623906049888821407e-5*(gamma-1.0)
+            real, parameter       :: rhoI = AMU*1.0, uI = 0.0, vI = 0.0, wI = 0.0, E0 = 0.5e51, r0 = 0.35*PC
+            real, parameter       :: xc = 0.0, yc = 0.0, zc = 0.0, pIn = (E0/((4.0/3.0)*pi*r0**3))*(gamma-1.0)
             integer               :: i, j, k
             real                  :: x, y, z, r
 
@@ -524,7 +524,7 @@ function _write_initconds(name)
                         call ycoord(j, y)
                         call zcoord(k, z)
                         r = sqrt(x**2+y**2+z**2)
-                        if (r > 0.35*PC) then
+                        if (r > r0) then
                             U(1,i,j,k) = rhoO
                             U(2,i,j,k) = rhoO*uO
                             U(3,i,j,k) = rhoO*vO
@@ -545,7 +545,7 @@ function _write_initconds(name)
         #endif
         end subroutine initflowRadiativeSedov
         """
-    elseif name == "Gravitational_Potential_Accuracy_Test_(Multigrid)"
+    elseif name == "Gravitational Potential Accuracy Test (Multigrid)"
         initconds_name = "initflowGravPotAccTest"
         init_conds = """
         subroutine initflowGravPotAccTest()
@@ -594,7 +594,7 @@ function _write_initconds(name)
             call pointmass_potential(PHI)
         #endif
         """
-    elseif name == "Evrard's_Collapse"
+    elseif name == "Evrard's Collapse"
         initconds_name = "initflowEvrard"
         init_conds = """
         subroutine initflowEvrard()
@@ -645,7 +645,7 @@ function _write_initconds(name)
         #endif
         end subroutine initflowEvrard
         """
-    elseif name == "Truelove_Collapse_Test"
+    elseif name == "Truelove Collapse Test"
         initconds_name = "initflowTruelove"
         init_conds = """
         subroutine initflowTruelove()
