@@ -39,6 +39,7 @@ function _all_error_metrics(xex, yex, xnum, ynum)
     L1d = 0
     L2n = 0
     L2d = 0
+    scale = maximum(abs.(yex))
     for i in idx:fdx
         j, k = _neighbor_search(xnum[i], xex, k)
         if j == nothing || k == nothing
@@ -47,7 +48,11 @@ function _all_error_metrics(xex, yex, xnum, ynum)
         m, b = _interpol((xex[j],yex[j]),(xex[k],yex[k]))
         yex_interp = m*xnum[i] + b
         y_err_abs = abs(yex_interp - ynum[i])
-        y_err_rel = y_err_abs / abs(yex_interp)
+        if abs(yex_interp) > 1e-12
+            y_err_rel = y_err_abs / abs(yex_interp)
+        else
+            y_err_rel = y_err_abs / scale
+        end
         push!(err, y_err_rel)
         mapes += y_err_rel
         rmspe += y_err_rel^2
