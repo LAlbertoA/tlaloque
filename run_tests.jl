@@ -3,6 +3,7 @@ using REPL.TerminalMenus
 
 include("tests_utilities.jl")
 include("tests_analisis.jl")
+include("report_generation.jl")
 
 main_path = @__DIR__
 tests_path = joinpath(main_path,"tests")
@@ -129,7 +130,36 @@ for i in 1:length(tests_names)
         end
         println("Test run completed. Comparing results with expected results.\n")
         analyze(tests_names[i])
-        println("Analysis completed. Results saved to ", paths_to_tests[i], "\n")
+        println("####################################################################################")
+        println("####################################################################################\n")
+        println("Analysis completed. Generating report for ", tests_names[i], "\n")
+        out_fig = String[]
+        err_fig = String[]
+        m_file = ""
+        for file in readdir(".")
+            if endswith(file, ".png")
+                if contains(file, "error")
+                    push!(err_fig, file)
+                else
+                    push!(out_fig, file)
+                end
+            elseif endswith(file, "metrics.txt")
+                m_file = file
+            end
+        end
+        sort!(out_fig)
+        sort!(err_fig)
+        _write_latex_report("$(tname)_report.tex", string(tests_names[i]), out_fig, err_fig, m_file)
+        println("####################################################################################")
+        println("####################################################################################\n")
+        println("Report generated. You can find the .tex file of the report in the file: ", "$(tname)_report.tex", "\n")
+        try
+            run(`tectonic $(tname)_report.tex`)
+            println("PDF generated. You can find the PDF file of the report in the file: ", "$(tname)_report.pdf", "\n")
+        catch
+            println("PDF generation failed. Please make sure you have tectonic installed in your system.\n")
+            println("You can still compile the .tex file manually with any LaTeX compiler to generate the PDF report.\n")
+        end
         println("####################################################################################")
         println("####################################################################################\n")
     end

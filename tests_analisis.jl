@@ -50,7 +50,7 @@ function _sod_analisis()
             h4 = heatmap!(ax4, m.x, m.y, Uin[:,:,halfsize_index[3]])
             Colorbar(f[2,4], h4, label = L"U")
 
-            save("Sod"*string(c,base=10,pad=3)*".png", f)
+            save("Sod_slice"*string(c,base=10,pad=3)*".png", f)
 
             r = [sign(i)*sqrt(i^2 + i^2 + i^2) for i in m.x]
             rho = [m.pointData[1,i,i,i] for i in 1:m.nx]
