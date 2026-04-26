@@ -254,7 +254,7 @@
          xr, xl, yr, yl, zr, zl, np, mpix, mpiy, mpiz, outputpath
     use globals, only: UPrim, rank, coords
 #ifdef GRAV
-    use globals, only: PHI
+    use globals, only: PHIT
 #endif
     use constants, only: DAT, VTK, BIN, PC
     implicit none
@@ -282,7 +282,7 @@
 #ifdef GRAV
        open(unit=unitout,file='phi'//file3,status='unknown',access='stream',form='unformatted',convert='LITTLE_ENDIAN')
 
-       write(unitout) PHI(:,:,:)
+       write(unitout) PHIT(:,:,:)
 
        close(unitout)
 #endif
@@ -294,7 +294,7 @@
        do k = nxmin+nghost, nxmax-nghost
           do j = nymin+nghost, nymax-nghost
              do i = nzmin+nghost, nzmax-nghost
-                write(unitout,'(14(e16.7e3))') float(i)*dx,float(j)*dy,float(k)*dz,UPrim(:,i,j,k),phi(i,j,k)
+                write(unitout,'(14(e16.7e3))') float(i)*dx,float(j)*dy,float(k)*dz,UPrim(:,i,j,k),PHIT(i,j,k)
              enddo
           enddo
        enddo
@@ -364,7 +364,7 @@
        do k = 1,nzmax-nghost
           do j = 1,nymax-nghost
              do i = 1,nxmax-nghost
-                write(unitout) PHI(i,j,k)
+                write(unitout) PHIT(i,j,k)
              enddo
           enddo
        enddo
