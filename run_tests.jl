@@ -128,6 +128,8 @@ for i in 1:length(tests_names)
         else
             run(pipeline(`./$tname`, `tee DATA/output.txt`))
         end
+        println("\n####################################################################################")
+        println("####################################################################################\n")
         println("Test run completed. Comparing results with expected results.\n")
         analyze(tests_names[i])
         println("####################################################################################")

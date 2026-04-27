@@ -220,9 +220,9 @@
        BackB = "Inflow"
     endif
     
-    write(74,*) "Left Boundary: ", trim(LeftB), "Right Boundary: ", trim(RightB)
-    write(74,*) "Down Boundary: ", trim(DownB), "Top Boundary: ", trim(TopB)
-    write(74,*) "Front Boundary: ", trim(FrontB), "Back Boundary: ", trim(BackB)
+    write(74,*) "Left Boundary: ", trim(LeftB), ". Right Boundary: ", trim(RightB)
+    write(74,*) "Down Boundary: ", trim(DownB), ". Top Boundary: ", trim(TopB)
+    write(74,*) "Front Boundary: ", trim(FrontB), ". Back Boundary: ", trim(BackB)
 
     write(74,*) ""
 
