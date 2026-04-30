@@ -170,7 +170,7 @@
   subroutine step(t,it,dt)
     
     use parameters, only: nx, ny, nz, neq, eta, nxmax, nymax, nzmax
-    use globals, only: U, UP
+    use globals, only: U, UP, UPP
     
     implicit none
     
@@ -178,13 +178,15 @@
     integer, intent(inout)      :: it
     real, intent(inout)         :: t
     real, intent(in)            :: dt
+
+    UPP = U
     
     do i = 1,nx
        do j = 1,ny
           do k = 1,nz
              do e = 1,neq
-                U(e,i,j,k) = UP(e,i,j,k) + eta*(U(e,i+1,j,k) + U(e,i-1,j,k) + U(e,i,j+1,k) + &
-                     U(e,i,j-1,k) + U(e,i,j,k+1) + U(e,i,j,k-1) - 6.0*U(e,i,j,k))
+                U(e,i,j,k) = UP(e,i,j,k) + eta*(UPP(e,i+1,j,k) + UPP(e,i-1,j,k) + UPP(e,i,j+1,k) + &
+                     UPP(e,i,j-1,k) + UPP(e,i,j,k+1) + UPP(e,i,j,k-1) - 6.0*UPP(e,i,j,k))
              enddo
           enddo
        enddo

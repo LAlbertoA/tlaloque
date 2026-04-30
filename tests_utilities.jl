@@ -459,8 +459,8 @@ function _write_initconds(name)
             implicit none
 
             real, parameter       :: rhoO = 1.0, uO = 0.0, vO = 0.0, wO = 0.0, pO = 1.5e-20*(gamma-1.0)
-            real, parameter       :: rhoI = 1.0, uI = 0.0, vI = 0.0, wI = 0.0
-            real, parameter       :: xc = 0.0, yc = 0.0, zc = 0.0, pIn = 2.481617647e6*(gamma-1.0)
+            real, parameter       :: rhoI = 1.0, uI = 0.0, vI = 0.0, wI = 0.0, E0 = 1.e5, r0 = 0.15
+            real, parameter       :: xc = 0.0, yc = 0.0, zc = 0.0, pIn = (E0/((4.0/3.0)*pi*r0**3))*(gamma-1.0)
             integer               :: i, j, k
             real                  :: x, y, z, r
 
@@ -475,7 +475,7 @@ function _write_initconds(name)
                         call ycoord(j, y)
                         call zcoord(k, z)
                         r = sqrt(x**2+y**2+z**2)
-                        if (r < 0.2) then
+                        if (r < r0) then
                             U(1,i,j,k) = rhoI
                             U(2,i,j,k) = rhoI*uI
                             U(3,i,j,k) = rhoI*vI
