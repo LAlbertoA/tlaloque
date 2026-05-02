@@ -45,7 +45,7 @@ function _all_error_metrics(xex, yex, xnum, ynum)
     scale = maximum(abs.(yex))
     for i in idx:fdx
         j, k = _neighbor_search(xnum[i], xex, k)
-        if j == nothing || k == nothing
+        if isnothing(j) || isnothing(k)
             return nothing, nothing, nothing, nothing, nothing, nothing
         end
         m, b = _interpol((xex[j],yex[j]),(xex[k],yex[k]))
