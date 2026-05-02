@@ -1,8 +1,8 @@
 using VTKLegacy
 using CairoMakie
 
+include("constants.jl")
 include("utils_analisis.jl")
-#cd("tests/Sod")
 
 function analyze(name)
     if name == "Sod"
@@ -153,26 +153,39 @@ function _sedov_analisis()
             c += 1
             m = LoadVTK("DATA/"*i);
             halfsize_index = floor.(Int,[m.nx, m.ny, m.nz]./2)
+            theta = collect(0.001:0.001:2*pi)
             vel = magnitude(m.pointData[3:5,:,:,:])
             Uin = m.pointData[2,:,:,:]./(((5/3)-1).*m.pointData[1,:,:,:])
 
-            f = Figure(size = (1200,1200), fontsize = 20)
-            ax1 = Axis(f[1,1], title = "Slices at $(halfsize_index[3]) in z", xlabel = L"x", ylabel = L"y")
-            h1 = heatmap!(ax1, m.x, m.y, m.pointData[1,:,:,halfsize_index[3]])
+            f = Figure(size = (1400,1200), fontsize = 20)
+            ax1 = Axis(f[1,1], title = "Slices at $(halfsize_index[3]) in z", xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h1 = heatmap!(ax1, m.x, m.y, m.pointData[1,:,:,halfsize_index[3]], colorscale = log10)
             Colorbar(f[1,2], h1, label = L"\rho")
 
-            ax2 = Axis(f[1,3], xlabel = L"x", ylabel = L"y")
-            h2 = heatmap!(ax2, m.x, m.y, m.pointData[2,:,:,halfsize_index[3]])
+            ax2 = Axis(f[1,3], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h2 = heatmap!(ax2, m.x, m.y, m.pointData[2,:,:,halfsize_index[3]], colorscale = log10)
             Colorbar(f[1,4], h2, label = L"P")
 
-            ax3 = Axis(f[2,1], xlabel = L"x", ylabel = L"y")
+            ax3 = Axis(f[2,1], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
             h3 = heatmap!(ax3, m.x, m.y, vel[:,:,halfsize_index[3]])
             Colorbar(f[2,2], h3, label = L"|v|")
 
-            ax4 = Axis(f[2,3], xlabel = L"x", ylabel = L"y")
-            h4 = heatmap!(ax4, m.x, m.y, Uin[:,:,halfsize_index[3]])
+            ax4 = Axis(f[2,3], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h4 = heatmap!(ax4, m.x, m.y, Uin[:,:,halfsize_index[3]], colorscale = log10)
             Colorbar(f[2,4], h4, label = L"U")
-            
+
+            if c != 1
+                time_sedov = (c-1)*0.1/(length(files)-2)
+                lines!(ax1, _radius_sedov(time_sedov, 1e5, 1).*cos.(theta), _radius_sedov(time_sedov, 1e5, 1).*sin.(theta),
+                    color = :red, label = "Shock expected position")
+                lines!(ax2, _radius_sedov(time_sedov, 1e5, 1).*cos.(theta), _radius_sedov(time_sedov, 1e5, 1).*sin.(theta),
+                    color = :red, label = "Shock expected position")
+                lines!(ax3, _radius_sedov(time_sedov, 1e5, 1).*cos.(theta), _radius_sedov(time_sedov, 1e5, 1).*sin.(theta),
+                    color = :red, label = "Shock expected position")
+                lines!(ax4, _radius_sedov(time_sedov, 1e5, 1).*cos.(theta), _radius_sedov(time_sedov, 1e5, 1).*sin.(theta),
+                    color = :red, label = "Shock expected position")
+            end
+
             save("Sedov_slice"*string(c,base=10,pad=3)*".png", f)
 
             r = [sign(i)*sqrt(i^2 + i^2 + i^2) for i in m.x]
@@ -182,17 +195,30 @@ function _sedov_analisis()
             rUin = [Uin[i,i,i] for i in 1:m.nx]
 
             f = Figure(size = (1200,1200), fontsize = 20)
-            ax1 = Axis(f[1,1], title = "Diagonal profiles", xlabel = L"r", ylabel = L"\rho", limits = (-5,5, nothing, nothing))
+            ax1 = Axis(f[1,1], title = "Diagonal profiles", xlabel = L"r", ylabel = L"\rho", yscale = log10)
             lines!(ax1, r, rho, label = "Numerical")
 
-            ax2 = Axis(f[1,2], xlabel = L"r", ylabel = L"P", limits = (-5,5, nothing, nothing))
+            ax2 = Axis(f[1,2], xlabel = L"r", ylabel = L"P", yscale = log10)
             lines!(ax2, r, pres, label = "Numerical")
 
-            ax3 = Axis(f[2,1], xlabel = L"r", ylabel = L"|v|", limits = (-5,5, nothing, nothing))
+            ax3 = Axis(f[2,1], xlabel = L"r", ylabel = L"|v|")
             lines!(ax3, r, rvel, label = "Numerical")
 
-            ax4 = Axis(f[2,2], xlabel = L"r", ylabel = L"U", limits = (-5,5, nothing, nothing))
+            ax4 = Axis(f[2,2], xlabel = L"r", ylabel = L"U", yscale = log10)
             lines!(ax4, r, rUin, label = "Numerical")
+
+            if c != 1
+                time_sedov = (c-1)*0.1/(length(files)-2)
+                lines!(ax1, [_radius_sedov(time_sedov, 1e5, 1),_radius_sedov(time_sedov, 1e5, 1)],
+                    [minimum(rho), maximum(rho)], color = :black, label = "Shock expected position")
+                lines!(ax2, [_radius_sedov(time_sedov, 1e5, 1),_radius_sedov(time_sedov, 1e5, 1)],
+                    [minimum(pres), maximum(pres)], color = :black, label = "Shock expected position")
+                lines!(ax3, [_radius_sedov(time_sedov, 1e5, 1),_radius_sedov(time_sedov, 1e5, 1)],
+                    [minimum(rvel), maximum(rvel)], color = :black, label = "Shock expected position")
+                lines!(ax4, [_radius_sedov(time_sedov, 1e5, 1),_radius_sedov(time_sedov, 1e5, 1)],
+                    [minimum(rUin), maximum(rUin)], color = :black, label = "Shock expected position")
+                axislegend(ax1, position = :lt)
+            end
 
             save("Sedov_profile"*string(c,base=10,pad=3)*".png", f)
         end
@@ -207,17 +233,72 @@ function _radiative_sedov_analisis()
             c += 1
             m = LoadVTK("DATA/"*i);
             halfsize_index = floor.(Int,[m.nx, m.ny, m.nz]./2)
+            theta = collect(0.001:0.001:2*pi)
+            vel = magnitude(m.pointData[3:5,:,:,:])
+            Uin = m.pointData[2,:,:,:]./(((5/3)-1).*m.pointData[1,:,:,:])
 
-            f, ax, h = heatmap(m.x, m.y, m.pointData[1,:,:,halfsize_index[3]], axis = (title = "Slice at $(halfsize_index[3]) in z",
-                xlabel = L"x", ylabel = L"y"))
-            cb = Colorbar(f[1,2], h, label = L"\rho")
+            f = Figure(size = (1400,1200), fontsize = 20)
+            ax1 = Axis(f[1,1], title = "Slices at $(halfsize_index[3]) in z", xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h1 = heatmap!(ax1, m.x, m.y, m.pointData[1,:,:,halfsize_index[3]], colorscale = log10)
+            Colorbar(f[1,2], h1, label = L"\rho")
+
+            ax2 = Axis(f[1,3], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h2 = heatmap!(ax2, m.x, m.y, m.pointData[2,:,:,halfsize_index[3]], colorscale = log10)
+            Colorbar(f[1,4], h2, label = L"P")
+
+            ax3 = Axis(f[2,1], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h3 = heatmap!(ax3, m.x, m.y, vel[:,:,halfsize_index[3]])
+            Colorbar(f[2,2], h3, label = L"|v|")
+
+            ax4 = Axis(f[2,3], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h4 = heatmap!(ax4, m.x, m.y, Uin[:,:,halfsize_index[3]], colorscale = log10)
+            Colorbar(f[2,4], h4, label = L"U")
+
+            if c != 1
+                time_sedov = (c-1)*50*YEAR*1e3/(length(files)-2)
+                lines!(ax1, _radius_sedov(time_sedov, 0.5e51, 1*AMU).*cos.(theta), 
+                    _radius_sedov(time_sedov, 0.5e51, 1*AMU).*sin.(theta), color = :red, label = "Shock expected position")
+                lines!(ax2, _radius_sedov(time_sedov, 0.5e51, 1*AMU).*cos.(theta), 
+                    _radius_sedov(time_sedov, 0.5e51, 1*AMU).*sin.(theta), color = :red, label = "Shock expected position")
+                lines!(ax3, _radius_sedov(time_sedov, 0.5e51, 1*AMU).*cos.(theta), 
+                    _radius_sedov(time_sedov, 0.5e51, 1*AMU).*sin.(theta), color = :red, label = "Shock expected position")
+                lines!(ax4, _radius_sedov(time_sedov, 0.5e51, 1*AMU).*cos.(theta), 
+                    _radius_sedov(time_sedov, 0.5e51, 1*AMU).*sin.(theta), color = :red, label = "Shock expected position")
+            end
             
-            save("Radiative_Sedov"*string(c,base=10,pad=3)*".png", f)
+            save("Radiative_Sedov_slice"*string(c,base=10,pad=3)*".png", f)
 
             r = [sign(i)*sqrt(i^2 + i^2 + i^2) for i in m.x]
             rho = [m.pointData[1,i,i,i] for i in 1:m.nx]
+            pres = [m.pointData[2,i,i,i] for i in 1:m.nx]
+            rvel = [vel[i,i,i] for i in 1:m.nx]
+            rUin = [Uin[i,i,i] for i in 1:m.nx]
 
-            f, ax = lines(r, rho, axis = (title = "Diagonal profile", xlabel = L"r", ylabel = L"\rho"))
+            f = Figure(size = (1200,1200), fontsize = 20)
+            ax1 = Axis(f[1,1], title = "Diagonal profiles", xlabel = L"r", ylabel = L"\rho", limits = (-30*PC,30*PC, nothing, nothing), yscale = log10)
+            lines!(ax1, r, rho, label = "Numerical")
+
+            ax2 = Axis(f[1,2], xlabel = L"r", ylabel = L"P", limits = (-30*PC,30*PC, nothing, nothing), yscale = log10)
+            lines!(ax2, r, pres, label = "Numerical")
+
+            ax3 = Axis(f[2,1], xlabel = L"r", ylabel = L"|v|", limits = (-30*PC,30*PC, nothing, nothing))
+            lines!(ax3, r, rvel, label = "Numerical")
+
+            ax4 = Axis(f[2,2], xlabel = L"r", ylabel = L"U", limits = (-30*PC,30*PC, nothing, nothing), yscale = log10)
+            lines!(ax4, r, rUin, label = "Numerical")
+
+            if c != 1
+                time_sedov = (c-1)*50*YEAR*1e3/(length(files)-2)
+                lines!(ax1, [_radius_sedov(time_sedov, 0.5e51, 1*AMU),_radius_sedov(time_sedov, 0.5e51, 1*AMU)],
+                    [minimum(rho), maximum(rho)], color = :black, label = "Shock expected position")
+                lines!(ax2, [_radius_sedov(time_sedov, 0.5e51, 1*AMU),_radius_sedov(time_sedov, 0.5e51, 1*AMU)],
+                    [minimum(pres), maximum(pres)], color = :black, label = "Shock expected position")
+                lines!(ax3, [_radius_sedov(time_sedov, 0.5e51, 1*AMU),_radius_sedov(time_sedov, 0.5e51, 1*AMU)],
+                    [minimum(rvel), maximum(rvel)], color = :black, label = "Shock expected position")
+                lines!(ax4, [_radius_sedov(time_sedov, 0.5e51, 1*AMU),_radius_sedov(time_sedov, 0.5e51, 1*AMU)],
+                    [minimum(rUin), maximum(rUin)], color = :black, label = "Shock expected position")
+                axislegend(ax1, position = :lt)
+            end
 
             save("Radiative_Sedov_profile"*string(c,base=10,pad=3)*".png", f)
         end

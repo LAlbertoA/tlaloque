@@ -1,0 +1,9 @@
+AMU  = 1.660538782e-24   #! Atomic Mass Unit
+KB   = 1.380650400e-16   #! Boltzmann constant
+GR   = 6.67430e-8        #! Gravitational constant
+PC   = 3.085677588e+18   #! Parsec
+AU   = 1.495978707e+13   #! Astronomical unit
+YEAR = 3.155673600e+7    #! Year (Earth, sidereal)
+KYR  = 3.155673600e+10   #! One thousand years
+MSUN = 1.988920000e+33   #! Solar mass
+KMS  = 1.0e5             #! km/s in cgs

@@ -1,3 +1,6 @@
+function _radius_sedov(t, E0, rho0)
+    return 1.15*(E0*t^2/rho0)^(1/5)
+end
 function _interpol(p1,p2)
     x1, y1 = p1
     x2, y2 = p2

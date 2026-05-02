@@ -220,18 +220,18 @@ function _parameters(name)
         size = 0
         Gconst = "GR"
         cfl = 0.8
-        eta = 0.9e-1
+        eta = 0.5e-1
         tfin = "0.12"
     elseif name == "Sedov-Taylor"
         boundaries = ["OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"]
-        cells = [150,150,150]
+        cells = [200,200,200]
         physical_size = [-5.0, 5.0, -5.0, 5.0, -5.0, 5.0]
         gamma = "5.0/3.0"
         nout = 2
         size = 0
         Gconst = "GR"
         cfl = 0.8
-        eta = 0.9e-1
+        eta = 0.5e-1
         tfin = "0.1"
     elseif name == "Radiative Sedov-Taylor"
         boundaries = ["OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"]
@@ -241,7 +241,7 @@ function _parameters(name)
         nout = 10
         size = 0
         Gconst = "GR"
-        cfl = 0.7
+        cfl = 0.8
         eta = 0.5e-1
         tfin = "50*YEAR*1.e3"
     elseif name == "Gravitational Potential Accuracy Test (Multigrid)"
