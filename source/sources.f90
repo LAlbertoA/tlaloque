@@ -194,7 +194,7 @@ contains
 
        enddo
 
-       if (rank == 0 .and. logged == .true.) then     
+       if (rank == 0 .and. logged .eqv. .true.) then     
           write(logu,*) "Dif = ", Dif, "V-Cycle Iteration = ", iter
        endif
 
@@ -602,9 +602,9 @@ contains
     use globals, only: comm3d, err
 
     implicit none
-
+#ifdef MPIP
     include "mpif.h"
-
+#endif
     real, intent(in), dimension(0:nx+1,0:ny+1,0:nz+1) :: rho
     real, intent(out), dimension(4,4)                 :: cm, sm
     real, intent(out), dimension(0:4)                 :: c0
@@ -639,12 +639,16 @@ contains
                 enddo
              enddo
           enddo
+#ifdef MPIP          
           call mpi_allreduce(cmp, cmoment, 1, mpi_real_kind, mpi_sum, comm3d, err)
           call mpi_allreduce(smp, smoment, 1, mpi_real_kind, mpi_sum, comm3d, err)
+#endif
           cm(l,m) = c*cmoment
           sm(l,m) = c*smoment
        enddo
+#ifdef MPIP          
        call mpi_allreduce(c0mp, c0moment, 1, mpi_real_kind, mpi_sum, comm3d, err)
+#endif
        c0(l) = c0moment
     enddo
     c0mp = 0.0
@@ -664,7 +668,9 @@ contains
           enddo
        enddo
     enddo
+#ifdef MPIP
     call mpi_allreduce(c0mp, c0moment, 1, mpi_real_kind, mpi_sum, comm3d, err)
+#endif
     c0(l) = c0moment
 
   end subroutine Moments

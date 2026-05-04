@@ -8,6 +8,9 @@ program HydroCode
 #endif
     use winds
     use pgravity
+#ifdef GRAV
+    use sources
+#endif
     
     implicit none 
 
@@ -46,7 +49,7 @@ program HydroCode
     
 #ifdef GRAV    
     dens = U(1,nxmin+1:nxmax-1, nymin+1:nymax-1, nzmin+1:nzmax-1)
-    call Multigrid(dens,PHI)
+    call MultiGrid(dens,PHI)
     if (rank == 0) then
        print*, 'Potencial listo'
     endif

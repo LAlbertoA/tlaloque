@@ -16,7 +16,7 @@ function _run_menu()
     ##    "Gresho Vortex", "Noh Problem", "Double Mach Reflection", "Wind Tunnel with a Step"
     test_hydro_cooling_options = ["Radiative Sedov-Taylor"]
     test_gravity_options = ["Gravitational Potential Accuracy Test (Multigrid)", "Point Potential Test"]
-    test_hydro_gravity_options = ["Evrard's Collapse", "Truelove Collapse Test"]
+    test_hydro_gravity_options = ["Evrard Collapse", "Truelove Collapse Test"]
     ## Future hydro-gravity tests: "Jeans Instability Test", "Gravitational Collapse Test",
     ## All tests
     tests = cat("Hydro: " .* test_hydro_options, 
@@ -246,7 +246,7 @@ function _parameters(name)
         tfin = "50*YEAR*1.e3"
     elseif name == "Gravitational Potential Accuracy Test (Multigrid)"
         boundaries = ["OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"]
-        cells = [100,100,100]
+        cells = [150,150,150]
         physical_size = [-0.5, 0.5, -0.5, 0.5, -0.5, 0.5]
         gamma = "5.0/3.0"
         nout = 1
@@ -255,9 +255,9 @@ function _parameters(name)
         cfl = 0.8
         eta = 0.5e-2
         tfin = "0"
-    elseif name == "Evrard's Collapse"
+    elseif name == "Evrard Collapse"
         boundaries = ["REFLECTIVE", "REFLECTIVE", "REFLECTIVE", "REFLECTIVE", "REFLECTIVE", "REFLECTIVE"]
-        cells = [100,100,100]
+        cells = [128,128,128]
         physical_size = [-2.0, 2.0, -2.0, 2.0, -2.0, 2.0]
         gamma = "5.0/3.0"
         nout = 10
@@ -268,7 +268,7 @@ function _parameters(name)
         tfin = "3"
     elseif name == "Truelove Collapse Test"
         boundaries = ["OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"]
-        cells = [100,100,100]
+        cells = [128,128,128]
         physical_size = ["-535.0*AU", "535.0*AU", "-535.0*AU", "535.0*AU", "-535.0*AU", "535.0*AU"]
         gamma = "1.001"
         nout = 10
@@ -594,7 +594,7 @@ function _write_initconds(name)
             call pointmass_potential(PHI)
         #endif
         """
-    elseif name == "Evrard's Collapse"
+    elseif name == "Evrard Collapse"
         initconds_name = "initflowEvrard"
         init_conds = """
         subroutine initflowEvrard()

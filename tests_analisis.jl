@@ -15,7 +15,7 @@ function analyze(name)
         _gravitational_potential_analisis()
     elseif name == "Point Potential Test"
         _point_potential_analisis()
-    elseif name == "Evrard's Collapse"
+    elseif name == "Evrard Collapse"
         _evrard_collapse_analisis()
     elseif name == "Truelove Collapse Test"
         _truelove_collapse_analisis()
@@ -176,14 +176,12 @@ function _sedov_analisis()
 
             if c != 1
                 time_sedov = (c-1)*0.1/(length(files)-2)
-                lines!(ax1, _radius_sedov(time_sedov, 1e5, 1).*cos.(theta), _radius_sedov(time_sedov, 1e5, 1).*sin.(theta),
-                    color = :red, label = "Shock expected position")
-                lines!(ax2, _radius_sedov(time_sedov, 1e5, 1).*cos.(theta), _radius_sedov(time_sedov, 1e5, 1).*sin.(theta),
-                    color = :red, label = "Shock expected position")
-                lines!(ax3, _radius_sedov(time_sedov, 1e5, 1).*cos.(theta), _radius_sedov(time_sedov, 1e5, 1).*sin.(theta),
-                    color = :red, label = "Shock expected position")
-                lines!(ax4, _radius_sedov(time_sedov, 1e5, 1).*cos.(theta), _radius_sedov(time_sedov, 1e5, 1).*sin.(theta),
-                    color = :red, label = "Shock expected position")
+                radius_shock = _radius_sedov(time_sedov, 1e5, 1)
+                xrshock, yrshock = radius_shock.*cos.(theta), radius_shock.*sin.(theta)
+                lines!(ax1, xrshock, yrshock, color = :red, label = "Shock expected position")
+                lines!(ax2, xrshock, yrshock, color = :red, label = "Shock expected position")
+                lines!(ax3, xrshock, yrshock, color = :red, label = "Shock expected position")
+                lines!(ax4, xrshock, yrshock, color = :red, label = "Shock expected position")
             end
 
             save("Sedov_slice"*string(c,base=10,pad=3)*".png", f)
@@ -209,14 +207,15 @@ function _sedov_analisis()
 
             if c != 1
                 time_sedov = (c-1)*0.1/(length(files)-2)
-                lines!(ax1, [_radius_sedov(time_sedov, 1e5, 1),_radius_sedov(time_sedov, 1e5, 1)],
-                    [minimum(rho), maximum(rho)], color = :black, label = "Shock expected position")
-                lines!(ax2, [_radius_sedov(time_sedov, 1e5, 1),_radius_sedov(time_sedov, 1e5, 1)],
-                    [minimum(pres), maximum(pres)], color = :black, label = "Shock expected position")
-                lines!(ax3, [_radius_sedov(time_sedov, 1e5, 1),_radius_sedov(time_sedov, 1e5, 1)],
-                    [minimum(rvel), maximum(rvel)], color = :black, label = "Shock expected position")
-                lines!(ax4, [_radius_sedov(time_sedov, 1e5, 1),_radius_sedov(time_sedov, 1e5, 1)],
-                    [minimum(rUin), maximum(rUin)], color = :black, label = "Shock expected position")
+                radius_shock = _radius_sedov(time_sedov, 1e5, 1)
+                lines!(ax1, [radius_shock, radius_shock], [minimum(rho), maximum(rho)], color = :black, 
+                    label = "Shock expected position")
+                lines!(ax2, [radius_shock, radius_shock], [minimum(pres), maximum(pres)], color = :black, 
+                    label = "Shock expected position")
+                lines!(ax3, [radius_shock, radius_shock], [minimum(rvel), maximum(rvel)], color = :black, 
+                    label = "Shock expected position")
+                lines!(ax4, [radius_shock, radius_shock], [minimum(rUin), maximum(rUin)], color = :black, 
+                    label = "Shock expected position")
                 axislegend(ax1, position = :lt)
             end
 
@@ -256,14 +255,12 @@ function _radiative_sedov_analisis()
 
             if c != 1
                 time_sedov = (c-1)*50*YEAR*1e3/(length(files)-2)
-                lines!(ax1, _radius_sedov(time_sedov, 0.5e51, 1*AMU).*cos.(theta), 
-                    _radius_sedov(time_sedov, 0.5e51, 1*AMU).*sin.(theta), color = :red, label = "Shock expected position")
-                lines!(ax2, _radius_sedov(time_sedov, 0.5e51, 1*AMU).*cos.(theta), 
-                    _radius_sedov(time_sedov, 0.5e51, 1*AMU).*sin.(theta), color = :red, label = "Shock expected position")
-                lines!(ax3, _radius_sedov(time_sedov, 0.5e51, 1*AMU).*cos.(theta), 
-                    _radius_sedov(time_sedov, 0.5e51, 1*AMU).*sin.(theta), color = :red, label = "Shock expected position")
-                lines!(ax4, _radius_sedov(time_sedov, 0.5e51, 1*AMU).*cos.(theta), 
-                    _radius_sedov(time_sedov, 0.5e51, 1*AMU).*sin.(theta), color = :red, label = "Shock expected position")
+                radius_shock = _radius_sedov(time_sedov, 0.5e51, 1*AMU)
+                xrshock, yrshock = radius_shock.*cos.(theta), radius_shock.*sin.(theta)
+                lines!(ax1, xrshock, yrshock, color = :red, label = "Shock expected position")
+                lines!(ax2, xrshock, yrshock, color = :red, label = "Shock expected position")
+                lines!(ax3, xrshock, yrshock, color = :red, label = "Shock expected position")
+                lines!(ax4, xrshock, yrshock, color = :red, label = "Shock expected position")
             end
             
             save("Radiative_Sedov_slice"*string(c,base=10,pad=3)*".png", f)
@@ -289,14 +286,15 @@ function _radiative_sedov_analisis()
 
             if c != 1
                 time_sedov = (c-1)*50*YEAR*1e3/(length(files)-2)
-                lines!(ax1, [_radius_sedov(time_sedov, 0.5e51, 1*AMU),_radius_sedov(time_sedov, 0.5e51, 1*AMU)],
-                    [minimum(rho), maximum(rho)], color = :black, label = "Shock expected position")
-                lines!(ax2, [_radius_sedov(time_sedov, 0.5e51, 1*AMU),_radius_sedov(time_sedov, 0.5e51, 1*AMU)],
-                    [minimum(pres), maximum(pres)], color = :black, label = "Shock expected position")
-                lines!(ax3, [_radius_sedov(time_sedov, 0.5e51, 1*AMU),_radius_sedov(time_sedov, 0.5e51, 1*AMU)],
-                    [minimum(rvel), maximum(rvel)], color = :black, label = "Shock expected position")
-                lines!(ax4, [_radius_sedov(time_sedov, 0.5e51, 1*AMU),_radius_sedov(time_sedov, 0.5e51, 1*AMU)],
-                    [minimum(rUin), maximum(rUin)], color = :black, label = "Shock expected position")
+                radius_shock = _radius_sedov(time_sedov, 0.5e51, 1*AMU)
+                lines!(ax1, [radius_shock,radius_shock], [minimum(rho), maximum(rho)], color = :black, 
+                    label = "Shock expected position")
+                lines!(ax2, [radius_shock,radius_shock], [minimum(pres), maximum(pres)], color = :black, 
+                    label = "Shock expected position")
+                lines!(ax3, [radius_shock,radius_shock], [minimum(rvel), maximum(rvel)], color = :black, 
+                    label = "Shock expected position")
+                lines!(ax4, [radius_shock,radius_shock], [minimum(rUin), maximum(rUin)], color = :black, 
+                    label = "Shock expected position")
                 axislegend(ax1, position = :lt)
             end
 
@@ -313,17 +311,45 @@ function _evrard_collapse_analisis()
             c += 1
             m = LoadVTK("DATA/"*i);
             halfsize_index = floor.(Int,[m.nx, m.ny, m.nz]./2)
+            vel = magnitude(m.pointData[4:6,:,:,:])
 
-            f, ax, h = heatmap(m.x, m.y, m.pointData[1,:,:,halfsize_index[3]], axis = (title = "Slice at $(halfsize_index[3]) in z",
-                xlabel = L"x", ylabel = L"y"))
-            cb = Colorbar(f[1,2], h, label = L"\rho")
+            f = Figure(size = (1400,1200), fontsize = 20)
+            ax1 = Axis(f[1,1], title = "Slices at $(halfsize_index[3]) in z", xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h1 = heatmap!(ax1, m.x, m.y, m.pointData[1,:,:,halfsize_index[3]], colorscale = log10)
+            Colorbar(f[1,2], h1, label = L"\rho")
+
+            ax2 = Axis(f[1,3], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h2 = heatmap!(ax2, m.x, m.y, m.pointData[2,:,:,halfsize_index[3]], colorscale = log10)
+            Colorbar(f[1,4], h2, label = L"P")
+
+            ax3 = Axis(f[2,1], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h3 = heatmap!(ax3, m.x, m.y, vel[:,:,halfsize_index[3]])
+            Colorbar(f[2,2], h3, label = L"|v|")
+
+            ax4 = Axis(f[2,3], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h4 = heatmap!(ax4, m.x, m.y, m.pointData[3,:,:,halfsize_index[3]])
+            Colorbar(f[2,4], h4, label = L"\Phi")
             
-            save("Evrard_Collapse"*string(c,base=10,pad=3)*".png", f)
+            save("Evrard_Collapse_slice"*string(c,base=10,pad=3)*".png", f)
 
             r = [sign(i)*sqrt(i^2 + i^2 + i^2) for i in m.x]
             rho = [m.pointData[1,i,i,i] for i in 1:m.nx]
+            pres = [m.pointData[2,i,i,i] for i in 1:m.nx]
+            rvel = [vel[i,i,i] for i in 1:m.nx]
+            rphi = [m.pointData[3,i,i,i] for i in 1:m.nx]
 
-            f, ax = lines(r, rho, axis = (title = "Diagonal profile", xlabel = L"r", ylabel = L"\rho"))
+            f = Figure(size = (1200,1200), fontsize = 20)
+            ax1 = Axis(f[1,1], title = "Diagonal profiles", xlabel = L"r", ylabel = L"\rho", limits = (-2,2, nothing, nothing), yscale = log10)
+            lines!(ax1, r, rho, label = "Numerical")
+
+            ax2 = Axis(f[1,2], xlabel = L"r", ylabel = L"P", limits = (-2,2, nothing, nothing), yscale = log10)
+            lines!(ax2, r, pres, label = "Numerical")
+
+            ax3 = Axis(f[2,1], xlabel = L"r", ylabel = L"|v|", limits = (-2,2, nothing, nothing))
+            lines!(ax3, r, rvel, label = "Numerical")
+
+            ax4 = Axis(f[2,2], xlabel = L"r", ylabel = L"\Phi", limits = (-2,2, nothing, nothing))
+            lines!(ax4, r, rphi, label = "Numerical")
 
             save("Evrard_Collapse_profile"*string(c,base=10,pad=3)*".png", f)
         end
@@ -338,17 +364,51 @@ function _truelove_collapse_analisis()
             c += 1
             m = LoadVTK("DATA/"*i);
             halfsize_index = floor.(Int,[m.nx, m.ny, m.nz]./2)
+            vel = magnitude(m.pointData[4:6,:,:,:])
 
-            f, ax, h = heatmap(m.x, m.y, m.pointData[1,:,:,halfsize_index[3]], axis = (title = "Slice at $(halfsize_index[3]) in z",
-                xlabel = L"x", ylabel = L"y"))
-            cb = Colorbar(f[1,2], h, label = L"\rho")
+            if c == 1
+                cscale = identity
+            else
+                cscale = log10
+            end
+
+            f = Figure(size = (1400,1200), fontsize = 20)
+            ax1 = Axis(f[1,1], title = "Slices at $(halfsize_index[3]) in z", xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h1 = heatmap!(ax1, m.x, m.y, m.pointData[1,:,:,halfsize_index[3]], colorscale = log10)
+            Colorbar(f[1,2], h1, label = L"\rho")
+
+            ax2 = Axis(f[1,3], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h2 = heatmap!(ax2, m.x, m.y, m.pointData[2,:,:,halfsize_index[3]], colorscale = cscale)
+            Colorbar(f[1,4], h2, label = L"P")
+
+            ax3 = Axis(f[2,1], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h3 = heatmap!(ax3, m.x, m.y, vel[:,:,halfsize_index[3]])
+            Colorbar(f[2,2], h3, label = L"|v|")
+
+            ax4 = Axis(f[2,3], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
+            h4 = heatmap!(ax4, m.x, m.y, m.pointData[3,:,:,halfsize_index[3]])
+            Colorbar(f[2,4], h4, label = L"\Phi")
             
-            save("Truelove_Collapse"*string(c,base=10,pad=3)*".png", f)
+            save("Truelove_Collapse_slice"*string(c,base=10,pad=3)*".png", f)
 
             r = [sign(i)*sqrt(i^2 + i^2 + i^2) for i in m.x]
             rho = [m.pointData[1,i,i,i] for i in 1:m.nx]
+            pres = [m.pointData[2,i,i,i] for i in 1:m.nx]
+            rvel = [vel[i,i,i] for i in 1:m.nx]
+            rphi = [m.pointData[3,i,i,i] for i in 1:m.nx]
 
-            f, ax = lines(r, rho, axis = (title = "Diagonal profile", xlabel = L"r", ylabel = L"\rho"))
+            f = Figure(size = (1200,1200), fontsize = 20)
+            ax1 = Axis(f[1,1], title = "Diagonal profiles", xlabel = L"r", ylabel = L"\rho", limits = (-535.0*AU,535.0*AU, nothing, nothing), yscale = log10)
+            lines!(ax1, r, rho, label = "Numerical")
+
+            ax2 = Axis(f[1,2], xlabel = L"r", ylabel = L"P", limits = (-535.0*AU,535.0*AU, nothing, nothing), yscale = cscale)
+            lines!(ax2, r, pres, label = "Numerical")
+
+            ax3 = Axis(f[2,1], xlabel = L"r", ylabel = L"|v|", limits = (-535.0*AU,535.0*AU, nothing, nothing))
+            lines!(ax3, r, rvel, label = "Numerical")
+
+            ax4 = Axis(f[2,2], xlabel = L"r", ylabel = L"\Phi", limits = (-535.0*AU,535.0*AU, nothing, nothing))
+            lines!(ax4, r, rphi, label = "Numerical")
 
             save("Truelove_Collapse_profile"*string(c,base=10,pad=3)*".png", f)
         end
