@@ -96,41 +96,41 @@ contains
 
   end function aLegendre
   
-  subroutine MultiGrid(dens, phi)
+  subroutine MultiGrid(dens, phi, box_factor)
 
     use globals, only: Error, Residue, ret, rank, left, right, down, top, front, back, it
-    use parameters, only: nx, ny, nz, lvlm, logged, logu, Gconst
+    use parameters, only: nx, ny, nz, lvlm, logged, logu, Gconst, xl, xr, mpix
     use constants
     
     implicit none
 
-    real, intent(in)                     :: dens(0:nx+1,0:ny+1,0:nz+1)
+    real, intent(in)                     :: dens(0:nx+1,0:ny+1,0:nz+1), box_factor
     real, intent(inout)                  :: phi(0:nx+1,0:ny+1,0:nz+1)
     real, dimension(4,4)                 :: cosMoment, sinMoment
     real, dimension(0:4)                 :: c0
     integer, parameter                   :: Solve = 1, Relax = 2
     integer                              :: nxl, nyl, nzl, lv, level, iteraciones, iter
-    real                                 :: Dif
+    real                                 :: Dif, dxl
 
-    if (mod(it,10).eq.0) then
-       call Moments(c0,cosMoment,sinMoment,dens)
+    if (mod(it,10).eq.0 .and. abs(box_factor - 1.0) > 1.0e-6) then
+       call Moments(c0,cosMoment,sinMoment,dens, box_factor)
        if (left<0) then
-          call phi_xboundaries(0,c0,cosMoment,sinMoment,phi)
+          call phi_xboundaries(0,c0,cosMoment,sinMoment,phi,box_factor)
        endif
        if (right<0) then
-          call phi_xboundaries(nx+1,c0,cosMoment,sinMoment,phi)
+          call phi_xboundaries(nx+1,c0,cosMoment,sinMoment,phi,box_factor)
        endif
        if (down<0) then
-          call phi_yboundaries(0,c0,cosMoment,sinMoment,phi)
+          call phi_yboundaries(0,c0,cosMoment,sinMoment,phi,box_factor)
        endif
        if (top<0) then
-          call phi_yboundaries(ny+1,c0,cosMoment,sinMoment,phi)
+          call phi_yboundaries(ny+1,c0,cosMoment,sinMoment,phi,box_factor)
        endif
        if (front<0) then
-          call phi_zboundaries(0,c0,cosMoment,sinMoment,phi)
+          call phi_zboundaries(0,c0,cosMoment,sinMoment,phi,box_factor)
        endif
        if (back<0) then
-          call phi_zboundaries(nz+1,c0,cosMoment,sinMoment,phi)
+          call phi_zboundaries(nz+1,c0,cosMoment,sinMoment,phi,box_factor)
        endif
     endif
     Residue(0)%data = 4.0*PI*Gconst*dens
@@ -149,8 +149,10 @@ contains
        enddo
 
        level = 0
+
+       dxl = box_factor*(xr-xl)/(mpix*nx)
        
-       call poisson_solver(Residue(0)%data,Error(0)%data,nx,ny,nz,Relax,iteraciones,Dif,level)
+       call poisson_solver(Residue(0)%data,Error(0)%data,nx,ny,nz,dxl,Relax,iteraciones,Dif,level)
 
        do level = 1,lvlm
 
@@ -158,18 +160,20 @@ contains
           nyl = int(ny/2**level)
           nzl = int(nz/2**level)
 
+          dxl = box_factor*(xr-xl)/(mpix*nxl)
+
 !          print*, "Restriction on ", level-1
 
           if (level == lvlm) then
-             call resid(nxl*2,nyl*2,nzl*2,Error(level-1)%data,Residue(level-1)%data,ret(level-1)%data)
+             call resid(nxl*2,nyl*2,nzl*2,dxl/2,Error(level-1)%data,Residue(level-1)%data,ret(level-1)%data)
              call restriction(nxl*2,nyl*2,nzl*2,nxl,nyl,nzl,ret(level-1)%data,Residue(level)%data)
 !             print*, "Solving residue equation on level", level
-             call poisson_solver(Residue(level)%data,Error(level)%data,nxl,nyl,nzl,Solve,iteraciones,Dif,level)
+             call poisson_solver(Residue(level)%data,Error(level)%data,nxl,nyl,nzl,dxl,Solve,iteraciones,Dif,level)
           else
-             call resid(nxl*2,nyl*2,nzl*2,Error(level-1)%data,Residue(level-1)%data,ret(level-1)%data)
+             call resid(nxl*2,nyl*2,nzl*2,dxl/2,Error(level-1)%data,Residue(level-1)%data,ret(level-1)%data)
              call restriction(nxl*2,nyl*2,nzl*2,nxl,nyl,nzl,ret(level-1)%data,Residue(level)%data)
 !             print*, "Relaxing residue equation on level", level
-             call poisson_solver(Residue(level)%data,Error(level)%data,nxl,nyl,nzl,Relax,iteraciones,Dif,level)
+             call poisson_solver(Residue(level)%data,Error(level)%data,nxl,nyl,nzl,dxl,Relax,iteraciones,Dif,level)
 
           endif
 
@@ -181,16 +185,15 @@ contains
           nyl = int(ny/2**level)
           nzl = int(nz/2**level)
 
+          dxl = box_factor*(xr-xl)/(mpix*nxl)
+
           ret(level)%data = 0.0
 
           call prolongation(int(nxl/2.0),int(nyl/2.0),int(nzl/2.0),nxl,nyl,nzl,Error(level+1)%data,ret(level)%data)
-
 !          print*, "Prolongation on ", level
-
           Error(level)%data = Error(level)%data + ret(level)%data
-
 !          print*, "Relaxing residue equation on level ", level-1
-          call poisson_solver(Residue(level)%data,Error(level)%data,nxl,nyl,nzl,Relax,iteraciones,Dif,level)
+          call poisson_solver(Residue(level)%data,Error(level)%data,nxl,nyl,nzl,dxl,Relax,iteraciones,Dif,level)
 
        enddo
 
@@ -270,21 +273,18 @@ contains
 
   end subroutine prolongation
 
-  subroutine resid(nx,ny,nz,var,source,resi)
+  subroutine resid(nx,ny,nz,dxl,var,source,resi)
 
-    use parameters, only: xl, xr, mpix
     implicit none
 
     integer, intent(in)   :: nx, ny, nz
+    real, intent(in)      :: dxl
     real, intent(in)      :: var(0:nx+1,0:ny+1,0:nz+1), source(0:nx+1,0:ny+1,0:nz+1)
     real, intent(out)     :: resi(0:nx+1,0:ny+1,0:nz+1)
     real                  :: grad(0:nx+1,0:ny+1,0:nz+1)
-    real                  :: dxl
     integer               :: i, j, k
 
     grad = 0.0
-
-    dxl = (xr-xl)/(mpix*nx)
 
     do i = 1, nx
        do j = 1, ny
@@ -299,7 +299,7 @@ contains
 
   end subroutine resid
 
-  subroutine  poisson_solver (source,var,nx,ny,nz,relsolv,it,Dif,level)
+  subroutine  poisson_solver (source,var,nx,ny,nz,dxl,relsolv,it,Dif,level)
 
     use parameters, only: xl, xr, size, mpi_real_kind, mpix
 #ifdef MPIP
@@ -315,13 +315,13 @@ contains
     real, intent(in)          ::  source(0:nx+1,0:ny+1,0:nz+1)
     real, intent(inout)       ::  var(0:nx+1,0:ny+1,0:nz+1)
     real, intent(inout)       ::  Dif
+    real, intent(in)          ::  dxl
     real, parameter           ::  gam = 1.      !! gam = 1 -> Gauss-Seidel, 1 < gam < 2 -> SOR
     integer, parameter        ::  Solve = 1, Relax = 2
 
-    real                      ::  dxl, er, d1, difp, w
+    real                      ::  er, d1, difp, w
     integer                   ::  i, j, k, iter, start
 
-    dxl = (xr-xl)/(mpix*nx)
     d1 = 0.0
     
     select case (relsolv)
@@ -596,25 +596,47 @@ contains
 
   end subroutine aangle
 
-  subroutine Moments(c0,cm,sm,rho)
+  subroutine Moments(c0,cm,sm,rho, box_factor)
 
-    use parameters, only: nx, ny, nz, dx, dy, dz, mpi_real_kind
-    use globals, only: comm3d, err
+    use parameters, only: nx, ny, nz, dx, dy, dz, xl, xr, yl, yr, zl, zr, mpix, mpiy, mpiz, mpi_real_kind
+    use globals, only: comm3d, err, coords
 
     implicit none
 #ifdef MPIP
     include "mpif.h"
 #endif
     real, intent(in), dimension(0:nx+1,0:ny+1,0:nz+1) :: rho
+    real, intent(in)                                  :: box_factor
     real, intent(out), dimension(4,4)                 :: cm, sm
     real, intent(out), dimension(0:4)                 :: c0
     real                                              :: r, coth, x, y, z, smoment
     real                                              :: c, cmp, smp, thet, fi, c0mp, cmoment, c0moment
+    real                                              :: xlc, xrc, ylc, yrc, zlc, zrc
+    real                                              :: dxc, dyc, dzc, dV
+    real                                              :: xleft, yleft, zleft
     integer                                           :: i, j, k, l, m
 
     c0 = 0.0
     cm = 0.0
     sm = 0.0
+
+    dxc = box_factor*dx
+    dyc = box_factor*dy
+    dzc = box_factor*dz
+    dV = dxc*dyc*dzc
+
+    xlc = 0.5*(xl+xr) - 0.5*box_factor*(xr-xl)
+    xrc = 0.5*(xl+xr) + 0.5*box_factor*(xr-xl)
+
+    ylc = 0.5*(yl+yr) - 0.5*box_factor*(yr-yl)
+    yrc = 0.5*(yl+yr) + 0.5*box_factor*(yr-yl)
+
+    zlc = 0.5*(zl+zr) - 0.5*box_factor*(zr-zl)
+    zrc = 0.5*(zl+zr) + 0.5*box_factor*(zr-zl)
+
+    xleft = xlc + coords(0)*(xrc-xlc)/mpix
+    yleft = ylc + coords(1)*(yrc-ylc)/mpiy
+    zleft = zlc + coords(2)*(zrc-zlc)/mpiz
 
     do l = 1,4
        do m = 1,l
@@ -625,20 +647,23 @@ contains
           do i = 1,nx
              do j = 1,ny
                 do k = 1,nz
-                   call xcoord(i,x)
-                   call ycoord(j,y)
-                   call zcoord(k,z)
+
+                   x = xleft + (i - 0.5)*dxc
+                   y = yleft + (j - 0.5)*dyc
+                   z = zleft + (k - 0.5)*dzc
                    call pangle(thet,x,y,z)
                    call aangle(fi,x,y)
                    call distance(r,x,y,z)
                    coth = cos(thet)
-                   c0mp = c0mp + Legendre(coth,l)*(r**l)*rho(i,j,k)*dx*dy*dz
-                   cmp = cmp + aLegendre(coth,l,m)*cos(m*fi)*(r**l)*rho(i,j,k)*dx*dy*dz
-                   smp = smp + aLegendre(coth,l,m)*sin(m*fi)*(r**l)*rho(i,j,k)*dx*dy*dz
+                   c0mp = c0mp + Legendre(coth,l)*(r**l)*rho(i,j,k)*dV
+                   cmp = cmp + aLegendre(coth,l,m)*cos(m*fi)*(r**l)*rho(i,j,k)*dV
+                   smp = smp + aLegendre(coth,l,m)*sin(m*fi)*(r**l)*rho(i,j,k)*dV
                    !             print*, cmoment, smoment
                 enddo
              enddo
           enddo
+          cmoment = cmp
+          smoment = smp
 #ifdef MPIP          
           call mpi_allreduce(cmp, cmoment, 1, mpi_real_kind, mpi_sum, comm3d, err)
           call mpi_allreduce(smp, smoment, 1, mpi_real_kind, mpi_sum, comm3d, err)
@@ -648,6 +673,8 @@ contains
        enddo
 #ifdef MPIP          
        call mpi_allreduce(c0mp, c0moment, 1, mpi_real_kind, mpi_sum, comm3d, err)
+#else
+       c0moment = c0mp
 #endif
        c0(l) = c0moment
     enddo
@@ -657,44 +684,70 @@ contains
     do i = 1,nx
        do j = 1,ny
           do k = 1,nz
-             call xcoord(i,x)
-             call ycoord(j,y)
-             call zcoord(k,z)
+
+             x = xleft + (i - 0.5)*dxc
+             y = yleft + (j - 0.5)*dyc
+             z = zleft + (k - 0.5)*dzc
              call pangle(thet,x,y,z)
              call aangle(fi,x,y)
              call distance(r,x,y,z)
              coth = cos(thet)
-             c0mp = c0mp + Legendre(coth,l)*(r**l)*rho(i,j,k)*dx*dy*dz
+             c0mp = c0mp + Legendre(coth,l)*(r**l)*rho(i,j,k)*dV
           enddo
        enddo
     enddo
 #ifdef MPIP
     call mpi_allreduce(c0mp, c0moment, 1, mpi_real_kind, mpi_sum, comm3d, err)
+#else
+    c0moment = c0mp
 #endif
     c0(l) = c0moment
 
   end subroutine Moments
 
-  subroutine phi_xboundaries(ibound,c0,cosMoment,sinMoment,phiarr)
+  subroutine phi_xboundaries(ibound,c0,cosMoment,sinMoment,phiarr,box_factor)
 
-    use parameters, only: nx, ny, nz, dx, dy, dz, Gconst
+    use parameters, only: nx, ny, nz, dx, dy, dz, Gconst, xl, xr, yl, yr, zl, zr, mpix, mpiy, mpiz
+    use globals, only: coords
 
     implicit none
 
-    integer, intent(in)                                :: ibound
-    real, intent(in), dimension(0:4)                   :: c0
-    real, intent(in), dimension(4,4)                   :: cosMoment, sinMoment
-    real, intent(out), dimension(0:nx+1,0:ny+1,0:nz+1) :: phiarr
-    integer                                            :: i, j, k, l, m
-    real                                               :: phi, x, y, z, thet, fi, rb, costheta
+    integer, intent(in)                                 :: ibound
+    real, intent(in), dimension(0:4)                    :: c0
+    real, intent(in), dimension(4,4)                    :: cosMoment, sinMoment
+    real, intent(inout), dimension(0:nx+1,0:ny+1,0:nz+1):: phiarr
+    real, intent(in)                                    :: box_factor
+    real                                                :: xlc, xrc, ylc, yrc, zlc, zrc
+    real                                                :: dxc, dyc, dzc
+    real                                                :: xleft, yleft, zleft
+    integer                                             :: i, j, k, l, m
+    real                                                :: phi, x, y, z, thet, fi, rb, costheta
 
+    dxc = box_factor*dx
+    dyc = box_factor*dy
+    dzc = box_factor*dz
+
+    xlc = 0.5*(xl+xr) - 0.5*box_factor*(xr-xl)
+    xrc = 0.5*(xl+xr) + 0.5*box_factor*(xr-xl)
+
+    ylc = 0.5*(yl+yr) - 0.5*box_factor*(yr-yl)
+    yrc = 0.5*(yl+yr) + 0.5*box_factor*(yr-yl)
+
+    zlc = 0.5*(zl+zr) - 0.5*box_factor*(zr-zl)
+    zrc = 0.5*(zl+zr) + 0.5*box_factor*(zr-zl)
+
+    xleft = xlc + coords(0)*(xrc-xlc)/mpix
+    yleft = ylc + coords(1)*(yrc-ylc)/mpiy
+    zleft = zlc + coords(2)*(zrc-zlc)/mpiz
+
+    i = ibound
     do j = 1,ny
        do k = 1,nz
-          i = ibound
+
           phi = 0.0
-          call xcoord(i,x)
-          call ycoord(j,y)
-          call zcoord(k,z)
+          x = xleft + (i - 0.5)*dxc
+          y = yleft + (j - 0.5)*dyc
+          z = zleft + (k - 0.5)*dzc
           call pangle(thet,x,y,z)
           call aangle(fi,x,y)
           call distance(rb,x,y,z)
@@ -712,26 +765,49 @@ contains
 
   end subroutine phi_xboundaries
 
-  subroutine phi_yboundaries(jbound,c0,cosMoment,sinMoment,phiarr)
+  subroutine phi_yboundaries(jbound,c0,cosMoment,sinMoment,phiarr,box_factor)
 
-    use parameters, only: nx, ny, nz, dx, dy, dz, Gconst
+    use parameters, only: nx, ny, nz, dx, dy, dz, Gconst, xl, xr, yl, yr, zl, zr, mpix, mpiy, mpiz
+    use globals, only: coords
     
     implicit none
 
-    integer, intent(in)                                :: jbound
-    real, intent(in), dimension(0:4)                   :: c0
-    real, intent(in), dimension(4,4)                   :: cosMoment, sinMoment
-    real, intent(out), dimension(0:nx+1,0:ny+1,0:nz+1) :: phiarr
-    integer                                            :: i, j, k, l, m
-    real                                               :: phi, x, y, z, thet, fi, rb, costheta
+    integer, intent(in)                                 :: jbound
+    real, intent(in), dimension(0:4)                    :: c0
+    real, intent(in), dimension(4,4)                    :: cosMoment, sinMoment
+    real, intent(inout), dimension(0:nx+1,0:ny+1,0:nz+1):: phiarr
+    real, intent(in)                                    :: box_factor
+    real                                                :: xlc, xrc, ylc, yrc, zlc, zrc
+    real                                                :: dxc, dyc, dzc
+    real                                                :: xleft, yleft, zleft
+    integer                                             :: i, j, k, l, m
+    real                                                :: phi, x, y, z, thet, fi, rb, costheta
 
+    dxc = box_factor*dx
+    dyc = box_factor*dy
+    dzc = box_factor*dz
+
+    xlc = 0.5*(xl+xr) - 0.5*box_factor*(xr-xl)
+    xrc = 0.5*(xl+xr) + 0.5*box_factor*(xr-xl)
+
+    ylc = 0.5*(yl+yr) - 0.5*box_factor*(yr-yl)
+    yrc = 0.5*(yl+yr) + 0.5*box_factor*(yr-yl)
+
+    zlc = 0.5*(zl+zr) - 0.5*box_factor*(zr-zl)
+    zrc = 0.5*(zl+zr) + 0.5*box_factor*(zr-zl)
+
+    xleft = xlc + coords(0)*(xrc-xlc)/mpix
+    yleft = ylc + coords(1)*(yrc-ylc)/mpiy
+    zleft = zlc + coords(2)*(zrc-zlc)/mpiz
+
+    j = jbound
     do i = 1,nx
        do k = 1,nz
-          j = jbound
+
           phi = 0.0
-          call xcoord(i,x)
-          call ycoord(j,y)
-          call zcoord(k,z)
+          x = xleft + (i - 0.5)*dxc
+          y = yleft + (j - 0.5)*dyc
+          z = zleft + (k - 0.5)*dzc
           call pangle(thet,x,y,z)
           call aangle(fi,x,y)
           call distance(rb,x,y,z)
@@ -749,26 +825,49 @@ contains
 
   end subroutine phi_yboundaries
 
-  subroutine phi_zboundaries(kbound,c0,cosMoment,sinMoment,phiarr)
+  subroutine phi_zboundaries(kbound,c0,cosMoment,sinMoment,phiarr,box_factor)
 
-    use parameters, only: nx, ny, nz, dx, dy, dz, Gconst
+    use parameters, only: nx, ny, nz, dx, dy, dz, Gconst, xl, xr, yl, yr, zl, zr, mpix, mpiy, mpiz
+    use globals, only: coords
 
     implicit none
 
-    integer, intent(in)                                :: kbound
-    real, intent(in), dimension(0:4)                   :: c0
-    real, intent(in), dimension(4,4)                   :: cosMoment, sinMoment
-    real, intent(out), dimension(0:nx+1,0:ny+1,0:nz+1) :: phiarr
-    integer                                            :: i, j, k, l, m
-    real                                               :: phi, x, y, z, thet, fi, rb, costheta
+    integer, intent(in)                                 :: kbound
+    real, intent(in), dimension(0:4)                    :: c0
+    real, intent(in), dimension(4,4)                    :: cosMoment, sinMoment
+    real, intent(inout), dimension(0:nx+1,0:ny+1,0:nz+1):: phiarr
+    real, intent(in)                                    :: box_factor
+    real                                                :: xlc, xrc, ylc, yrc, zlc, zrc
+    real                                                :: dxc, dyc, dzc
+    real                                                :: xleft, yleft, zleft
+    integer                                             :: i, j, k, l, m
+    real                                                :: phi, x, y, z, thet, fi, rb, costheta
 
+    dxc = box_factor*dx
+    dyc = box_factor*dy
+    dzc = box_factor*dz
+
+    xlc = 0.5*(xl+xr) - 0.5*box_factor*(xr-xl)
+    xrc = 0.5*(xl+xr) + 0.5*box_factor*(xr-xl)
+
+    ylc = 0.5*(yl+yr) - 0.5*box_factor*(yr-yl)
+    yrc = 0.5*(yl+yr) + 0.5*box_factor*(yr-yl)
+
+    zlc = 0.5*(zl+zr) - 0.5*box_factor*(zr-zl)
+    zrc = 0.5*(zl+zr) + 0.5*box_factor*(zr-zl)
+
+    xleft = xlc + coords(0)*(xrc-xlc)/mpix
+    yleft = ylc + coords(1)*(yrc-ylc)/mpiy
+    zleft = zlc + coords(2)*(zrc-zlc)/mpiz
+
+    k = kbound
     do i = 1,nx
        do j = 1,ny
-          k = kbound
+
           phi = 0.0
-          call xcoord(i,x)
-          call ycoord(j,y)
-          call zcoord(k,z)
+          x = xleft + (i - 0.5)*dxc
+          y = yleft + (j - 0.5)*dyc
+          z = zleft + (k - 0.5)*dzc
           call pangle(thet,x,y,z)
           call aangle(fi,x,y)
           call distance(rb,x,y,z)
@@ -895,5 +994,116 @@ contains
        enddo
     enddo
   end subroutine S_Solver
+
+  subroutine  restriction_density(nx,ny,nz,nxl,nyl,nzl,var,varTemp)
+
+    use parameters, only: neq, nxmin, nxmax, nymin, nymax, nzmin, nzmax
+    implicit none
+
+    integer, intent(in)                   :: nx, ny, nz, nxl, nyl, nzl
+    real, intent(in)                      :: var(neq,nxmin:nxmax,nymin:nymax,nzmin:nzmax)
+    real, intent(inout)                   :: varTemp(0:nx+1,0:ny+1,0:nz+1)
+    integer                               :: i, j, k, i1, j1, k1, nxq, nyq, nzq
+
+    nxq = Int(nxl/2)
+    nyq = Int(nyl/2)
+    nzq = Int(nzl/2)
+
+    do i = 1,nxl
+       do j = 1,nyl
+          do k = 1,nzl
+             i1 = i*2-1
+             j1 = j*2-1
+             k1 = k*2-1
+             varTemp(nxq+i,nyq+j,nzq+k) = (1.0/8.0)*(var(1,i1,j1,k1)+var(1,i1+1,j1,k1)+var(1,i1,j1+1,k1)+var(1,i1,j1,k1+1)+&
+                var(1,i1+1,j1+1,k1)+var(1,i1+1,j1,k1+1)+var(1,i1,j1+1,k1+1)+var(1,i1+1,j1+1,k1+1))
+          end do
+       end do
+    end do
+
+  end subroutine restriction_density
+
+  subroutine prolongation_to_phi(nx,ny,nz,phi_ext,phi_hydro)
+
+    implicit none
+
+    integer, intent(in) :: nx, ny, nz
+    real, intent(in)    :: phi_ext(0:nx+1,0:ny+1,0:nz+1)
+    real, intent(inout) :: phi_hydro(0:nx+1,0:ny+1,0:nz+1)
+
+    integer :: i, j, k
+    integer :: ic, jc, kc
+    integer :: ifn, jfn, kfn
+    integer :: nxl, nyl, nzl
+    integer :: nxq, nyq, nzq
+    integer :: a, b, c
+    real :: wx(0:1), wy(0:1), wz(0:1)
+
+    nxl = nx/2 + 1
+    nyl = ny/2 + 1
+    nzl = nz/2 + 1
+
+    nxq = nx/4
+    nyq = ny/4
+    nzq = nz/4
+
+    do i = 1,nxl
+       do j = 1,nyl
+          do k = 1,nzl
+
+             ic = nxq + i - 1
+             jc = nyq + j - 1
+             kc = nzq + k - 1
+
+             ifn = 2*i - 2
+             jfn = 2*j - 2
+             kfn = 2*k - 2
+
+             do a = 0,1
+                if (a == 0) then
+                   wx(0) = 0.75
+                   wx(1) = 0.25
+                else
+                   wx(0) = 0.25
+                   wx(1) = 0.75
+                endif
+
+                do b = 0,1
+                   if (b == 0) then
+                      wy(0) = 0.75
+                      wy(1) = 0.25
+                   else
+                      wy(0) = 0.25
+                      wy(1) = 0.75
+                   endif
+
+                   do c = 0,1
+                      if (c == 0) then
+                         wz(0) = 0.75
+                         wz(1) = 0.25
+                      else
+                         wz(0) = 0.25
+                         wz(1) = 0.75
+                      endif
+
+                      phi_hydro(ifn+a,jfn+b,kfn+c) = &
+                           wx(0)*wy(0)*wz(0)*phi_ext(ic  ,jc  ,kc  ) + &
+                           wx(1)*wy(0)*wz(0)*phi_ext(ic+1,jc  ,kc  ) + &
+                           wx(0)*wy(1)*wz(0)*phi_ext(ic  ,jc+1,kc  ) + &
+                           wx(0)*wy(0)*wz(1)*phi_ext(ic  ,jc  ,kc+1) + &
+                           wx(1)*wy(1)*wz(0)*phi_ext(ic+1,jc+1,kc  ) + &
+                           wx(1)*wy(0)*wz(1)*phi_ext(ic+1,jc  ,kc+1) + &
+                           wx(0)*wy(1)*wz(1)*phi_ext(ic  ,jc+1,kc+1) + &
+                           wx(1)*wy(1)*wz(1)*phi_ext(ic+1,jc+1,kc+1)
+
+                   enddo
+                enddo
+             enddo
+
+          enddo
+       enddo
+    enddo
+
+end subroutine prolongation_to_phi
 
 end module

@@ -13,13 +13,30 @@
     real                            :: dtdx, dtdy, dtdz
     integer                         :: i,j,k,e!,png
 #ifdef GRAV
-    real, dimension(nxmin+1:nxmax-1, nymin+1:nymax-1, nzmin+1:nzmax-1) :: dens
-    dens = UU(1,nxmin+1:nxmax-1, nymin+1:nymax-1, nzmin+1:nzmax-1)
-    !dens = UU(1,nxmin+2:nxmax-2, nymin+2:nymax-2, nzmin+2:nzmax-2)
+    integer                         :: nxh, nyh, nzh, nxq, nyq, nzq
+    real, dimension(:,:,:), allocatable :: dens
+!    dens = UU(1,nxmin+1:nxmax-1, nymin+1:nymax-1, nzmin+1:nzmax-1)
+    
+    nxh = Int(nx/2)
+    nyh = Int(ny/2)
+    nzh = Int(nz/2)
+    nxq = Int(nx/4)
+    nyq = Int(ny/4)
+    nzq = Int(nz/4)
 
-    !call poisson_solver1(dens, PHI, 3)
-    call MultiGrid(dens,PHI)
-    PHIT = PHIP + PHI
+    allocate(dens(0:nx+1, 0:ny+1, 0:nz+1))
+    
+    dens = 0.0
+
+    call restriction_density(nx,ny,nz,nxh,nyh,nzh,UU,dens)
+
+    call MultiGrid(dens,PHI, 2.0)
+
+    call prolongation_to_phi(nx,ny,nz,PHI,PHIT)
+!    PHIT = PHIP + PHI
+    dens = UU(1,nxmin+1:nxmax-1, nymin+1:nymax-1, nzmin+1:nzmax-1)
+    call Multigrid(dens,PHIT,1.0)
+
     call S_Solver(UPrim,PHIT,S)
 #endif
     dtdx = dt/dx

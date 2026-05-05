@@ -260,7 +260,7 @@ function _parameters(name)
         cells = [128,128,128]
         physical_size = [-2.0, 2.0, -2.0, 2.0, -2.0, 2.0]
         gamma = "5.0/3.0"
-        nout = 10
+        nout = 20
         size = 0
         Gconst = 1.0
         cfl = 0.8

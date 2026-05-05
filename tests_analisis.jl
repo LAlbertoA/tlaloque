@@ -157,21 +157,27 @@ function _sedov_analisis()
             vel = magnitude(m.pointData[3:5,:,:,:])
             Uin = m.pointData[2,:,:,:]./(((5/3)-1).*m.pointData[1,:,:,:])
 
+            if c == 1
+                cscale = identity
+            else
+                cscale = log10
+            end
+
             f = Figure(size = (1400,1200), fontsize = 20)
             ax1 = Axis(f[1,1], title = "Slices at $(halfsize_index[3]) in z", xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
-            h1 = heatmap!(ax1, m.x, m.y, m.pointData[1,:,:,halfsize_index[3]], colorscale = log10)
+            h1 = heatmap!(ax1, m.x, m.y, m.pointData[1,:,:,halfsize_index[3]], colorscale = cscale)
             Colorbar(f[1,2], h1, label = L"\rho")
 
             ax2 = Axis(f[1,3], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
-            h2 = heatmap!(ax2, m.x, m.y, m.pointData[2,:,:,halfsize_index[3]], colorscale = log10)
+            h2 = heatmap!(ax2, m.x, m.y, m.pointData[2,:,:,halfsize_index[3]], colorscale = cscale)
             Colorbar(f[1,4], h2, label = L"P")
 
             ax3 = Axis(f[2,1], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
-            h3 = heatmap!(ax3, m.x, m.y, vel[:,:,halfsize_index[3]])
+            h3 = heatmap!(ax3, m.x, m.y, vel[:,:,halfsize_index[3]], colorscale = cscale)
             Colorbar(f[2,2], h3, label = L"|v|")
 
             ax4 = Axis(f[2,3], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
-            h4 = heatmap!(ax4, m.x, m.y, Uin[:,:,halfsize_index[3]], colorscale = log10)
+            h4 = heatmap!(ax4, m.x, m.y, Uin[:,:,halfsize_index[3]], colorscale = cscale)
             Colorbar(f[2,4], h4, label = L"U")
 
             if c != 1
@@ -193,10 +199,10 @@ function _sedov_analisis()
             rUin = [Uin[i,i,i] for i in 1:m.nx]
 
             f = Figure(size = (1200,1200), fontsize = 20)
-            ax1 = Axis(f[1,1], title = "Diagonal profiles", xlabel = L"r", ylabel = L"\rho", yscale = log10)
+            ax1 = Axis(f[1,1], title = "Diagonal profiles", xlabel = L"r", ylabel = L"\rho")
             lines!(ax1, r, rho, label = "Numerical")
 
-            ax2 = Axis(f[1,2], xlabel = L"r", ylabel = L"P", yscale = log10)
+            ax2 = Axis(f[1,2], xlabel = L"r", ylabel = L"P")
             lines!(ax2, r, pres, label = "Numerical")
 
             ax3 = Axis(f[2,1], xlabel = L"r", ylabel = L"|v|")
@@ -236,21 +242,27 @@ function _radiative_sedov_analisis()
             vel = magnitude(m.pointData[3:5,:,:,:])
             Uin = m.pointData[2,:,:,:]./(((5/3)-1).*m.pointData[1,:,:,:])
 
+            if c == 1
+                cscale = identity
+            else
+                cscale = log10
+            end
+
             f = Figure(size = (1400,1200), fontsize = 20)
             ax1 = Axis(f[1,1], title = "Slices at $(halfsize_index[3]) in z", xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
-            h1 = heatmap!(ax1, m.x, m.y, m.pointData[1,:,:,halfsize_index[3]], colorscale = log10)
+            h1 = heatmap!(ax1, m.x, m.y, m.pointData[1,:,:,halfsize_index[3]], colorscale = cscale)
             Colorbar(f[1,2], h1, label = L"\rho")
 
             ax2 = Axis(f[1,3], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
-            h2 = heatmap!(ax2, m.x, m.y, m.pointData[2,:,:,halfsize_index[3]], colorscale = log10)
+            h2 = heatmap!(ax2, m.x, m.y, m.pointData[2,:,:,halfsize_index[3]], colorscale = cscale)
             Colorbar(f[1,4], h2, label = L"P")
 
             ax3 = Axis(f[2,1], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
-            h3 = heatmap!(ax3, m.x, m.y, vel[:,:,halfsize_index[3]])
+            h3 = heatmap!(ax3, m.x, m.y, vel[:,:,halfsize_index[3]], colorscale = cscale)
             Colorbar(f[2,2], h3, label = L"|v|")
 
             ax4 = Axis(f[2,3], xlabel = L"x", ylabel = L"y", yticklabelrotation = pi/2)
-            h4 = heatmap!(ax4, m.x, m.y, Uin[:,:,halfsize_index[3]], colorscale = log10)
+            h4 = heatmap!(ax4, m.x, m.y, Uin[:,:,halfsize_index[3]], colorscale = cscale)
             Colorbar(f[2,4], h4, label = L"U")
 
             if c != 1
@@ -272,16 +284,16 @@ function _radiative_sedov_analisis()
             rUin = [Uin[i,i,i] for i in 1:m.nx]
 
             f = Figure(size = (1200,1200), fontsize = 20)
-            ax1 = Axis(f[1,1], title = "Diagonal profiles", xlabel = L"r", ylabel = L"\rho", limits = (-30*PC,30*PC, nothing, nothing), yscale = log10)
+            ax1 = Axis(f[1,1], title = "Diagonal profiles", xlabel = L"r", ylabel = L"\rho", limits = (-30*PC,30*PC, nothing, nothing))
             lines!(ax1, r, rho, label = "Numerical")
 
-            ax2 = Axis(f[1,2], xlabel = L"r", ylabel = L"P", limits = (-30*PC,30*PC, nothing, nothing), yscale = log10)
+            ax2 = Axis(f[1,2], xlabel = L"r", ylabel = L"P", limits = (-30*PC,30*PC, nothing, nothing))
             lines!(ax2, r, pres, label = "Numerical")
 
             ax3 = Axis(f[2,1], xlabel = L"r", ylabel = L"|v|", limits = (-30*PC,30*PC, nothing, nothing))
             lines!(ax3, r, rvel, label = "Numerical")
 
-            ax4 = Axis(f[2,2], xlabel = L"r", ylabel = L"U", limits = (-30*PC,30*PC, nothing, nothing), yscale = log10)
+            ax4 = Axis(f[2,2], xlabel = L"r", ylabel = L"U", limits = (-30*PC,30*PC, nothing, nothing), yscale = cscale)
             lines!(ax4, r, rUin, label = "Numerical")
 
             if c != 1
