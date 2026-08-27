@@ -509,7 +509,7 @@ contains
     sendr(0:ny+1,0:nz+1) = var(nx,0:ny+1,0:nz+1)
     sendl(0:ny+1,0:nz+1) = var(1 ,0:ny+1,0:nz+1)
     sendt(0:nx+1,0:nz+1) = var(0:nx+1,ny,0:nz+1)
-    sendd(0:nx+1,0:nz+1) = var(0:ny+1,1 ,0:nz+1)
+    sendd(0:nx+1,0:nz+1) = var(0:nx+1,1 ,0:nz+1)
     sendb(0:nx+1,0:ny+1) = var(0:nx+1,0:ny+1,nz)
     sendf(0:nx+1,0:ny+1) = var(0:nx+1,0:ny+1,1 )
     
