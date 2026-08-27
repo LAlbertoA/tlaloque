@@ -4,10 +4,10 @@ COMPILER= gfortran
 #USER_FLAGS= -O3 -Wall -fcheck=all
 ######  USER_FLAGS for ifort:
 USER_FLAGS= -O3 #-warn all -check all
-MPI= N
+MPI= Y
 DOUBLEP= Y
 PASB= N
-GRV= N
+GRV= Y
 COOL= N
 
 MODULES_USER= \
@@ -18,6 +18,7 @@ MODULES_MAIN= \
 ./source/globals.o \
 ./source/cooling.o \
 ./source/pointsource_gravity.o \
+./source/redistribution.o \
 ./source/sources.o \
 ./source/winds.o \
 ./user/user.o 
@@ -58,35 +59,35 @@ CFLAGS += -DPASBP
 endif
 
 ifeq ($(MPI),Y)
-COMPILER = mpif90
+COMPILER = mpif90.openmpi
 endif
 
 OBJECTS_ALL = ${MODULES_MAIN} ${MODULES_USER} ${OBJECTS_MAIN}
 
 $(PROGRAM) : prebuild ${OBJECTS_ALL}
-    @echo Linking object files ...
-    @$(COMPILER) $(CFLAGS) ${OBJECTS_ALL} -o $@
-    @echo Cleaning up ...
-    @rm -f *.o *.mod source/*.o source/*.mod user/*.o user/*.mod
-    @echo "Done! (`date`)"
+	@echo Linking object files ...
+	@$(COMPILER) $(CFLAGS) ${OBJECTS_ALL} -o $@
+	@echo Cleaning up ...
+	@rm -f *.o *.mod source/*.o source/*.mod user/*.o user/*.mod
+	@echo "Done! (`date`)"
 
 prebuild :
-    @echo "$(PROGRAM) build started `date`"
+	@echo "$(PROGRAM) build started `date`"
 
 %.o : %.f90
-    @echo Compiling $^ ...
-    @$(COMPILER) $(CFLAGS) -c $^ -o $@
+	@echo Compiling $^ ...
+	@$(COMPILER) $(CFLAGS) -c $^ -o $@
 
 clean :
-    rm -f *.o *.mod source/*.o source/*.mod user/*.o user/*.mod
+	rm -f *.o *.mod source/*.o source/*.mod user/*.o user/*.mod
 
 cleanall :
-    rm -f *.o *.mod source/*.o source/*.mod user/*.o user/*.mod
-    rm -f $(PROGRAM).*
-    rm -f coldens
-    rm -f extract
-    rm -f DATA/*.bin
-    rm -f DATA/*.vtk
-    rm -f DATA/*.dat
-    rm -f DATA/*.log
-    rm -f DATA/*.visit
+	rm -f *.o *.mod source/*.o source/*.mod user/*.o user/*.mod
+	rm -f $(PROGRAM).*
+	rm -f coldens
+	rm -f extract
+	rm -f DATA/*.bin
+	rm -f DATA/*.vtk
+	rm -f DATA/*.dat
+	rm -f DATA/*.log
+	rm -f DATA/*.visit

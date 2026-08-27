@@ -14,7 +14,7 @@
     integer                         :: i,j,k,e!,png
 #ifdef GRAV
     integer                         :: nxh, nyh, nzh, nxq, nyq, nzq
-    real, dimension(:,:,:), allocatable :: dens
+    real, dimension(:,:,:), allocatable :: dens, phi_ext_local
 !    dens = UU(1,nxmin+1:nxmax-1, nymin+1:nymax-1, nzmin+1:nzmax-1)
     
     nxh = Int(nx/2)
@@ -25,14 +25,26 @@
     nzq = Int(nz/4)
 
     allocate(dens(0:nx+1, 0:ny+1, 0:nz+1))
+	allocate(phi_ext_local(0:nx+1, 0:ny+1, 0:nz+1))
     
     dens = 0.0
 
     call restriction_density(nx,ny,nz,nxh,nyh,nzh,UU,dens)
 
+#ifdef MPIP
+    call redistribute_density_blocks(dens)
+#endif
+
     call MultiGrid(dens,PHI, 2.0)
 
+#ifdef MPIP
+    call redistribute_phi_for_prolongation(PHI,phi_ext_local)
+    call prolongation_to_phi(nx,ny,nz,phi_ext_local,PHIT)
+#else
     call prolongation_to_phi(nx,ny,nz,PHI,PHIT)
+#endif
+
+!    call prolongation_to_phi(nx,ny,nz,PHI,PHIT)
 !    PHIT = PHIP + PHI
     dens = UU(1,nxmin+1:nxmax-1, nymin+1:nymax-1, nzmin+1:nzmax-1)
     call Multigrid(dens,PHIT,1.0)

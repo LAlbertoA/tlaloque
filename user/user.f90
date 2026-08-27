@@ -45,7 +45,7 @@ contains
 !       call imposeSphericalWind(spherical_wind(i), U)
 
 !    enddo
-    call ExplosionPuntual()
+    call initflowEvrard()
 #ifdef GRAV
     call pointmass_potential(PHIP)
 #endif     
@@ -61,11 +61,11 @@ contains
     real, dimension(neq, nxmin:nxmax, nymin:nymax, nzmin:nzmax), intent(inout) :: U
     integer                                                                    :: i
 
-    do i = 0,Nstrs-1
+   !do i = 0,Nstrs-1
 
-       call imposeSphericalWind(spherical_wind(i), U)
+       !call imposeSphericalWind(spherical_wind(i), U)
 
-    enddo
+    !enddo
 
   end subroutine user_boundaries
 
@@ -181,53 +181,53 @@ contains
 #endif
   end subroutine JeansColapse
   
-  subroutine EvrardCollapse()
-    
-    use parameters, only: nxmax, nymax, nzmax, nxmin, nymin, nzmin, neq, gamma
-    use globals
-    use constants
-    
-    implicit none
-    
-    real, parameter       :: uO = 0.0, vO = 0.0, wO = 0.0, pO = (2.0/3.0)*0.05
-    real, parameter       :: uI = 0.0, vI = 0.0, wI = 0.0
-    integer               :: i, j, k
-    real                  :: x, y, z, r, M, R1
-    
-    x = 0.0
-    y = 0.0
-    z = 0.0
-    
-    M = 1.0
-    R1 = 1.0
-    
-    do i = nxmin, nxmax
-       do j = nymin, nymax
-          do k = nzmin, nzmax
-             call xcoord(i, x)
-             call ycoord(j, y)
-             call zcoord(k, z)
-             r = sqrt(x**2+y**2+z**2)
-             if (r>R1) then
-                U(1,i,j,k) = 1.e-4
-                U(2,i,j,k) = 0.0
-                U(3,i,j,k) = 0.0
-                U(4,i,j,k) = 0.0
-                U(5,i,j,k) = 1.e-4*0.05
-             else
-                U(1,i,j,k) = M/(2.0*PI*r*R1**2)
-                U(2,i,j,k) = 0.0
-                U(3,i,j,k) = 0.0
-                U(4,i,j,k) = 0.0
-                U(5,i,j,k) = 0.05/(2.0*PI*r*R1**2)
-             end if
-          enddo
-       enddo
-    enddo
+   subroutine initflowEvrard()
+
+      use parameters, only: nxmax, nymax, nzmax, nxmin, nymin, nzmin, neq, gamma
+      use globals
+      use constants
+
+      implicit none
+
+      real, parameter       :: uO = 0.0, vO = 0.0, wO = 0.0, pO = (gamma-1.0)*0.05
+      real, parameter       :: uI = 0.0, vI = 0.0, wI = 0.0
+      integer               :: i, j, k
+      real                  :: x, y, z, r, M, R1
+
+      x = 0.0
+      y = 0.0
+      z = 0.0
+
+      M = 1.0
+      R1 = 1.0
+
+      do i = nxmin, nxmax
+         do j = nymin, nymax
+               do k = nzmin, nzmax
+                  call xcoord(i, x)
+                  call ycoord(j, y)
+                  call zcoord(k, z)
+                  r = sqrt(x**2+y**2+z**2)
+                  if (r>R1) then
+                     U(1,i,j,k) = 1.e-4
+                     U(2,i,j,k) = 0.0
+                     U(3,i,j,k) = 0.0
+                     U(4,i,j,k) = 0.0
+                     U(5,i,j,k) = 1.e-4*0.05
+                  else
+                     U(1,i,j,k) = M/(2.0*PI*r*R1**2)
+                     U(2,i,j,k) = 0.0
+                     U(3,i,j,k) = 0.0
+                     U(4,i,j,k) = 0.0
+                     U(5,i,j,k) = 0.05/(2.0*PI*r*R1**2)
+                  end if
+               enddo
+         enddo
+      enddo
 #ifdef GRAV
-    PHI(:,:,:) = 0.0
+      PHI(:,:,:) = 0.0
 #endif
-  end subroutine EvrardCollapse
+   end subroutine initflowEvrard
 
   subroutine NonRotatingSphere()
 

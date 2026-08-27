@@ -3,3 +3,6 @@
 DATA/
 *~
 tests
+
+*.png
+log*

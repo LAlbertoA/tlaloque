@@ -15,7 +15,7 @@ program HydroCode
     implicit none 
 
 #ifdef GRAV
-    real, dimension(:,:,:), allocatable  :: dens_main
+    real, dimension(:,:,:), allocatable  :: dens_main, phi_ext_local
     integer                                :: nxh, nyh, nzh, nxq, nyq, nzq
 #endif
     !!! ------------------ main ----------------------------------------
@@ -58,14 +58,26 @@ program HydroCode
     nzq = Int(nz/4)
 
     allocate(dens_main(0:nx+1, 0:ny+1, 0:nz+1))
+	allocate(phi_ext_local(0:nx+1, 0:ny+1, 0:nz+1))
     
     dens_main = 0.0
 
     call restriction_density(nx,ny,nz,nxh,nyh,nzh,U,dens_main)
 
+#ifdef MPIP
+    call redistribute_density_blocks(dens_main)
+#endif
+
     call MultiGrid(dens_main,PHI, 2.0)
 
+#ifdef MPIP
+    call redistribute_phi_for_prolongation(PHI,phi_ext_local)
+    call prolongation_to_phi(nx,ny,nz,phi_ext_local,PHIT)
+#else
     call prolongation_to_phi(nx,ny,nz,PHI,PHIT)
+#endif
+
+!	call prolongation_to_phi(nx,ny,nz,PHI,PHIT)
 !    PHIT = PHIP + PHI
     dens_main = U(1,nxmin+1:nxmax-1, nymin+1:nymax-1, nzmin+1:nzmax-1)
     call Multigrid(dens_main,PHIT,1.0)
@@ -74,13 +86,6 @@ program HydroCode
     endif
 #endif
 
-!#ifdef GRAV    
-!    dens = U(1,nxmin+1:nxmax-1, nymin+1:nymax-1, nzmin+1:nzmax-1)
-!    call MultiGrid(dens,PHI)
-!    if (rank == 0) then
-!       print*, 'Potencial listo'
-!    endif
-!#endif    
     if (rank == 0) then
         print*, 'Inicia ciclo principal'
     endif

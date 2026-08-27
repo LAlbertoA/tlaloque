@@ -20,9 +20,9 @@ module parameters
     integer, parameter  :: ndim = 3           !! Number of dimensions of the problem (Currently only supporting 3).
     integer, parameter  :: neq = 5            !! Number of equations to solve (Currently only supporting 5).
     integer, parameter  :: size = 6           !! 
-    integer, parameter  :: nxtot = 50!4*2**size  !! Number of cells in each axis. If using self-gravity, nx, ny and nz
-    integer, parameter  :: nytot = 50!4*2**size  !! MUST be a power of 2 with `size` it's power: nx, ny, nz = 2**size.
-    integer, parameter  :: nztot = 50!4*2**size  !! If using MPI and self-gravity, nx, ny and nz MUST be a power of 2
+    integer, parameter  :: nxtot = 2*2**size  !! Number of cells in each axis. If using self-gravity, nx, ny and nz
+    integer, parameter  :: nytot = 2*2**size  !! MUST be a power of 2 with `size` it's power: nx, ny, nz = 2**size.
+    integer, parameter  :: nztot = 2*2**size  !! If using MPI and self-gravity, nx, ny and nz MUST be a power of 2
     integer, parameter  :: choice = 2         !! like so: nx, ny, nz = (mpix, mpiy, mpiz)*2**size
 
     integer, parameter      :: num_out = 10  !! Number of output files 
@@ -34,24 +34,24 @@ module parameters
     character(*), parameter :: posfile = '/storage5/luis.arcos/25SG/posest75.dat' !! Star positions file for winds and point_gravity modules
     integer, parameter      :: nghost = 2   !! Order
 
-    real, parameter  :: xl = -1.0!*PC           !! Position of first physical cell in the x axis
-    real, parameter  :: xr = 1.0!*PC            !! Position of last physical cell in the x axis
-    real, parameter  :: yl = -1.0!*PC           !! Position of first physical cell in the y axis
-    real, parameter  :: yr = 1.0!*PC            !! Position of last physical cell in the y axis
-    real, parameter  :: zl = -1.0!*PC           !! Position of first physical cell in the z axis
-    real, parameter  :: zr = 1.0!*PC            !! Position of last physical cell in the z axis
+    real, parameter  :: xl = -2.0!*PC           !! Position of first physical cell in the x axis
+    real, parameter  :: xr = 2.0!*PC            !! Position of last physical cell in the x axis
+    real, parameter  :: yl = -2.0!*PC           !! Position of first physical cell in the y axis
+    real, parameter  :: yr = 2.0!*PC            !! Position of last physical cell in the y axis
+    real, parameter  :: zl = -2.0!*PC           !! Position of first physical cell in the z axis
+    real, parameter  :: zr = 2.0!*PC            !! Position of last physical cell in the z axis
     real, parameter  :: gamma = 5.0/3.0        !! Specific heat ratio. C_p/C_v
     real, parameter  :: mu0 = 1.0              !! Mean particule mass
-    real, parameter  :: Gconst = GR            !! Gravitational constant. If using physical units, GR = 6.67430e-8 dyn cm^2/g^2
-    real, parameter  :: cfl = 0.4              !! Courant-Friedrichs-Lewy condition. 0 < cfl < 1
-    real, parameter  :: eta = 0.5e-2           !! Artificial Viscosity. 0 < eta < 0.5
-    real, parameter  :: tfin = 1!1.9e5*YEAR      !! Total simulated time.
+    real, parameter  :: Gconst = 1            !! Gravitational constant. If using physical units, GR = 6.67430e-8 dyn cm^2/g^2
+    real, parameter  :: cfl = 0.8              !! Courant-Friedrichs-Lewy condition. 0 < cfl < 1
+    real, parameter  :: eta = 0.0           !! Artificial Viscosity. 0 < eta < 0.5
+    real, parameter  :: tfin = 3!1.9e5*YEAR      !! Total simulated time.
     real, parameter  :: cooling_limit = 0.5
                 !!! MPI Constants definitions !!!
 #ifdef MPIP          
-    integer, parameter  :: mpix = 4            !! Number of subdivisions of the computational domain in the x axis
-    integer, parameter  :: mpiy = 4            !! Number of subdivisions of the computational domain in the y axis
-    integer, parameter  :: mpiz = 4            !! Number of subdivisions of the computational domain in the z axis 
+    integer, parameter  :: mpix = 2            !! Number of subdivisions of the computational domain in the x axis
+    integer, parameter  :: mpiy = 2            !! Number of subdivisions of the computational domain in the y axis
+    integer, parameter  :: mpiz = 2            !! Number of subdivisions of the computational domain in the z axis 
     integer, parameter  :: np = mpix*mpiy*mpiz !! Total number of processor cores needed for the given subdivisions
     integer, parameter  :: nx = nxtot/mpix     !! Number of cells in each core in the x axis
     integer, parameter  :: ny = nytot/mpiy     !! Number of cells in each core in the y axis

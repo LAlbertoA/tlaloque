@@ -5,6 +5,10 @@
     use parameters, only: np, nx, ny, nz, ndim, logged, logu, logfile
 #ifdef GRAV
     use parameters, only: lvlm
+#ifdef MPIP
+    use sources, only: setup_density_redistribution
+	use sources, only: setup_phi_prolongation_redistribution
+#endif
 #endif
 #ifdef MPIP
     use parameters, only: mpix, mpiy, mpiz, LB, RB, DB, TB, FB, BB
@@ -31,6 +35,8 @@
     call mpi_init(err)
     call mpi_comm_rank(mpi_comm_world,rank,err)
     call mpi_comm_size(mpi_comm_world,nprocs,err)
+
+	print*, "Proceso", rank, "dice: nprocs =", nprocs, "y np =", np
     
     if (nprocs.ne.np) then
        print*, 'processor number (',nprocs,') is not equal to pre-defined number (',np,')'
@@ -116,6 +122,13 @@
        Residue(level)%data = 0.0
        
     end do
+#endif
+
+#ifdef GRAV
+#ifdef MPIP
+    call setup_density_redistribution()
+	call setup_phi_prolongation_redistribution()
+#endif
 #endif
 
 #ifdef COOL

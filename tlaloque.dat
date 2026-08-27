@@ -4,9 +4,9 @@
  
   BOUNDARIES: 
  
- Left Boundary: ReflectiveRight Boundary: Reflective
- Down Boundary: ReflectiveTop Boundary: Reflective
- Front Boundary: ReflectiveBack Boundary: Reflective
+ Left Boundary: Reflective. Right Boundary: Reflective
+ Down Boundary: Reflective. Top Boundary: Reflective
+ Front Boundary: Reflective. Back Boundary: Reflective
  
  ************************************************************
  ************************************************************
@@ -14,11 +14,11 @@
   GENERAL PARAMETERS: 
  
  Limiter: Van Leer
- Courant-Friedrichs-Lewy condition (cfl):   0.40000000000000002     
- Artificial viscosity constant (eta):    5.0000000000000001E-003
+ Courant-Friedrichs-Lewy condition (cfl):   0.80000000000000004     
+ Artificial viscosity constant (eta):    0.0000000000000000     
  Order of solver:            2
- MPI usage: false
- Gravity: false
+ MPI usage: true. Number of proccessors used:            8
+ Gravity: true
  Number of output files:           10
  Type of output file: VTK
  Output files folder: ./DATA/
@@ -28,20 +28,23 @@
  
   MESH PARAMETERS: 
  
- Number of total physical cells in x dimension:           50
- Number of total physical cells in y dimension:           50
- Number of total physical cells in z dimension:           50
+ Number of total physical cells in x dimension:          128
+ Number of total physical cells in y dimension:          128
+ Number of total physical cells in z dimension:          128
+ Number of physical cells in each processor in x dimension:           64
+ Number of physical cells in each processor in y dimension:           64
+ Number of physical cells in each processor in z dimension:           64
  
- Position of first physical cell in the x axis:   -1.0000000000000000     
- Position of last physical cell in the x axis:    1.0000000000000000     
- Position of first physical cell in the y axis:   -1.0000000000000000     
- Position of last physical cell in the y axis:    1.0000000000000000     
- Position of first physical cell in the z axis:   -1.0000000000000000     
- Position of last physical cell in the z axis:    1.0000000000000000     
+ Position of first physical cell in the x axis:   -2.0000000000000000     
+ Position of last physical cell in the x axis:    2.0000000000000000     
+ Position of first physical cell in the y axis:   -2.0000000000000000     
+ Position of last physical cell in the y axis:    2.0000000000000000     
+ Position of first physical cell in the z axis:   -2.0000000000000000     
+ Position of last physical cell in the z axis:    2.0000000000000000     
  
- Cell size in the x axis:    4.0000000000000001E-002
- Cell size in the y axis:    4.0000000000000001E-002
- Cell size in the z axis:    4.0000000000000001E-002
+ Cell size in the x axis:    3.1250000000000000E-002
+ Cell size in the y axis:    3.1250000000000000E-002
+ Cell size in the z axis:    3.1250000000000000E-002
  
  ************************************************************
  ************************************************************
@@ -51,4 +54,5 @@
  Heat capacity ratio gamma:    1.6666666666666667     
  Mean particle mass mu:    1.0000000000000000     
  Cooling: false
- Total simulated time in seconds:    1.0000000000000000     
+ Total simulated time in seconds:    3.0000000000000000     
+ Gravitational constant:    1.0000000000000000     

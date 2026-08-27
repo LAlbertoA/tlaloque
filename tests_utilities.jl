@@ -263,7 +263,7 @@ function _parameters(name)
         nout = 20
         size = 0
         Gconst = 1.0
-        cfl = 0.8
+        cfl = 0.2
         eta = 0.5e-2
         tfin = "3"
     elseif name == "Truelove Collapse Test"

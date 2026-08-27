@@ -1106,4 +1106,1090 @@ contains
 
 end subroutine prolongation_to_phi
 
+#ifdef MPIP
+
+subroutine redistribute_density(dens)
+
+   use parameters, only: neq, nxtot, nytot, nztot, mpix, mpiy, mpiz, nx, ny, nz, mpi_real_kind
+   use globals, only: comm3d, err, coords, rank
+
+   implicit none
+   
+   include "mpif.h"
+
+   real, intent(inout) :: dens(0:nx+1,0:ny+1,0:nz+1)
+   
+   integer :: nxh, nyh, nzh
+   integer :: ioff, joff, koff
+   integer :: src_x1, src_x2, src_y1, src_y2, src_z1, src_z2
+   integer :: dest_x_min, dest_x_max, dest_y_min, dest_y_max, dest_z_min, dest_z_max
+   integer :: dest_x, dest_y, dest_z, dest_rank, dest_coords(3)
+   integer :: dst_x1, dst_x2, dst_y1, dst_y2, dst_z1, dst_z2
+   integer :: ix1, ix2, iy1, iy2, iz1, iz2
+   integer :: src_i1, src_i2, src_j1, src_j2, src_k1, src_k2
+   integer :: dst_i1, dst_i2, dst_j1, dst_j2, dst_k1, dst_k2
+
+   real, allocatable :: dens_old(:,:,:), sendbuf(:,:,:), recvbuf(:,:,:)
+
+   nxh = nx/2
+   nyh = ny/2
+   nzh = nz/2
+   
+   ioff = nxtot/4
+   joff = nytot/4
+   koff = nztot/4
+
+   allocate(dens_old(0:nx+1,0:ny+1,0:nz+1))
+   dens_old = dens
+   dens = 0.0
+
+   !! Notes to myself, position of the density restricted block in the global grid:
+   src_x1 = ioff + coords(0)*nxh + 1
+   src_x2 = ioff + (coords(0)+1)*nxh
+
+   src_y1 = joff + coords(1)*nyh + 1
+   src_y2 = joff + (coords(1)+1)*nyh
+
+   src_z1 = koff + coords(2)*nzh + 1
+   src_z2 = koff + (coords(2)+1)*nzh
+
+   !! coordinates of the mpi rank that will receive the density block:
+   dest_x_min = (src_x1 - 1)/nx
+   dest_x_max = (src_x2 - 1)/nx
+
+   dest_y_min = (src_y1 - 1)/ny
+   dest_y_max = (src_y2 - 1)/ny
+
+   dest_z_min = (src_z1 - 1)/nz
+   dest_z_max = (src_z2 - 1)/nz
+
+   do dest_x = dest_x_min, dest_x_max
+      do dest_y = dest_y_min, dest_y_max
+         do dest_z = dest_z_min, dest_z_max
+
+            !! destination indices total range in the global grid:
+            dst_x1 = dest_x*nx + 1
+            dst_x2 = (dest_x+1)*nx
+
+            dst_y1 = dest_y*ny + 1
+            dst_y2 = (dest_y+1)*ny
+
+            dst_z1 = dest_z*nz + 1
+            dst_z2 = (dest_z+1)*nz
+
+            !! overlap of the source block and the destination block in the global grid:
+            ix1 = max(src_x1,dst_x1)
+            ix2 = min(src_x2,dst_x2)
+
+            iy1 = max(src_y1,dst_y1)
+            iy2 = min(src_y2,dst_y2)
+
+            iz1 = max(src_z1,dst_z1)
+            iz2 = min(src_z2,dst_z2)
+
+            if (ix1 <= ix2 .and. iy1 <= iy2 .and. iz1 <= iz2) then
+               
+               !! indices of the source block in the local grid of this rank:
+               src_i1 = nx/4 + 1 + (ix1 - src_x1)
+               src_i2 = nx/4 + 1 + (ix2 - src_x1)
+
+               src_j1 = ny/4 + 1 + (iy1 - src_y1)
+               src_j2 = ny/4 + 1 + (iy2 - src_y1)
+
+               src_k1 = nz/4 + 1 + (iz1 - src_z1)
+               src_k2 = nz/4 + 1 + (iz2 - src_z1)
+
+               !! indices of the destination block in the local grid of the destination rank:
+               dst_i1 = ix1 - dest_x*nx
+               dst_i2 = ix2 - dest_x*nx
+
+               dst_j1 = iy1 - dest_y*ny
+               dst_j2 = iy2 - dest_y*ny
+
+               dst_k1 = iz1 - dest_z*nz
+               dst_k2 = iz2 - dest_z*nz
+
+               dest_coords = (/dest_x, dest_y, dest_z/)
+
+               call mpi_cart_rank(comm3d, dest_coords, dest_rank, err)
+
+               if (dest_rank == rank) then
+                  dens(dst_i1:dst_i2,dst_j1:dst_j2,dst_k1:dst_k2) = &
+                     dens_old(src_i1:src_i2,src_j1:src_j2,src_k1:src_k2)
+               else
+                  call mpi_send(dens_old(src_i1:src_i2,src_j1:src_j2,src_k1:src_k2), &
+                        (src_i2-src_i1+1)*(src_j2-src_j1+1)*(src_k2-src_k1+1), mpi_real_kind, dest_rank, 0, comm3d, err)
+               endif
+
+               endif
+            enddo
+         enddo
+      enddo
+      
+      deallocate (dens_old)
+
+   end subroutine redistribute_density
+
+subroutine setup_density_redistribution()
+
+    use parameters, only: nx, ny, nz, mpix, mpiy, mpiz
+    use globals, only: coords, rank, comm3d, err
+    use density_redistribution_data
+
+    implicit none
+
+#ifdef MPIP
+
+	include "mpif.h"
+
+    integer :: NXG, NYG, NZG
+    integer :: nxh, nyh, nzh
+    integer :: ioff, joff, koff
+
+    integer :: src_x1, src_x2, src_y1, src_y2, src_z1, src_z2
+    integer :: dest_x_min, dest_x_max
+    integer :: dest_y_min, dest_y_max
+    integer :: dest_z_min, dest_z_max
+
+    integer :: dest_x, dest_y, dest_z
+    integer :: dest_rank
+    integer :: dest_coords(3)
+
+    integer :: dst_x1, dst_x2, dst_y1, dst_y2, dst_z1, dst_z2
+    integer :: ix1, ix2, iy1, iy2, iz1, iz2
+
+    integer :: src_i1, src_i2, src_j1, src_j2, src_k1, src_k2
+    integer :: dst_i1, dst_i2, dst_j1, dst_j2, dst_k1, dst_k2
+
+    integer :: nprocs
+    integer :: b, p, offset
+    integer :: nblocks_p
+    integer :: recv_count
+
+    integer :: my_meta(1 + meta_size*max_send_blocks)
+    integer, allocatable :: all_meta(:,:)
+
+    integer :: tmp_send_dest(max_send_blocks)
+    integer :: tmp_send_nblock(max_send_blocks)
+
+    integer :: tmp_send_src_i1(max_send_blocks), tmp_send_src_i2(max_send_blocks)
+    integer :: tmp_send_src_j1(max_send_blocks), tmp_send_src_j2(max_send_blocks)
+    integer :: tmp_send_src_k1(max_send_blocks), tmp_send_src_k2(max_send_blocks)
+
+    integer :: tmp_send_dst_i1(max_send_blocks), tmp_send_dst_i2(max_send_blocks)
+    integer :: tmp_send_dst_j1(max_send_blocks), tmp_send_dst_j2(max_send_blocks)
+    integer :: tmp_send_dst_k1(max_send_blocks), tmp_send_dst_k2(max_send_blocks)
+
+    if (mod(nx,4) /= 0 .or. mod(ny,4) /= 0 .or. mod(nz,4) /= 0) then
+       if (rank == 0) then
+          print *, "ERROR: setup_density_redistribution requires nx,ny,nz divisible by 4"
+       endif
+       stop
+    endif
+
+    call MPI_Comm_size(comm3d, nprocs, err)
+
+    NXG = nx*mpix
+    NYG = ny*mpiy
+    NZG = nz*mpiz
+
+    if (mod(NXG,4) /= 0 .or. mod(NYG,4) /= 0 .or. mod(NZG,4) /= 0) then
+       if (rank == 0) then
+          print *, "ERROR: global grid must be divisible by 4 in each direction"
+       endif
+       stop
+    endif
+
+    nxh = nx/2
+    nyh = ny/2
+    nzh = nz/2
+
+    ioff = NXG/4
+    joff = NYG/4
+    koff = NZG/4
+
+    ! ============================================================
+    ! 1. Calculate local send metadata
+    ! ============================================================
+
+    nsend_rho_blocks = 0
+
+    src_x1 = ioff + coords(0)*nxh + 1
+    src_x2 = ioff + (coords(0)+1)*nxh
+
+    src_y1 = joff + coords(1)*nyh + 1
+    src_y2 = joff + (coords(1)+1)*nyh
+
+    src_z1 = koff + coords(2)*nzh + 1
+    src_z2 = koff + (coords(2)+1)*nzh
+
+    dest_x_min = (src_x1 - 1)/nx
+    dest_x_max = (src_x2 - 1)/nx
+
+    dest_y_min = (src_y1 - 1)/ny
+    dest_y_max = (src_y2 - 1)/ny
+
+    dest_z_min = (src_z1 - 1)/nz
+    dest_z_max = (src_z2 - 1)/nz
+
+    do dest_x = dest_x_min, dest_x_max
+       do dest_y = dest_y_min, dest_y_max
+          do dest_z = dest_z_min, dest_z_max
+
+             dst_x1 = dest_x*nx + 1
+             dst_x2 = (dest_x+1)*nx
+
+             dst_y1 = dest_y*ny + 1
+             dst_y2 = (dest_y+1)*ny
+
+             dst_z1 = dest_z*nz + 1
+             dst_z2 = (dest_z+1)*nz
+
+             ix1 = max(src_x1,dst_x1)
+             ix2 = min(src_x2,dst_x2)
+
+             iy1 = max(src_y1,dst_y1)
+             iy2 = min(src_y2,dst_y2)
+
+             iz1 = max(src_z1,dst_z1)
+             iz2 = min(src_z2,dst_z2)
+
+             if (ix1 <= ix2 .and. iy1 <= iy2 .and. iz1 <= iz2) then
+
+                nsend_rho_blocks = nsend_rho_blocks + 1
+
+                if (nsend_rho_blocks > max_send_blocks) then
+                   print *, "ERROR: too many send blocks in setup_density_redistribution"
+                   stop
+                endif
+
+                src_i1 = nx/4 + 1 + (ix1 - src_x1)
+                src_i2 = nx/4 + 1 + (ix2 - src_x1)
+
+                src_j1 = ny/4 + 1 + (iy1 - src_y1)
+                src_j2 = ny/4 + 1 + (iy2 - src_y1)
+
+                src_k1 = nz/4 + 1 + (iz1 - src_z1)
+                src_k2 = nz/4 + 1 + (iz2 - src_z1)
+
+                dst_i1 = ix1 - dest_x*nx
+                dst_i2 = ix2 - dest_x*nx
+
+                dst_j1 = iy1 - dest_y*ny
+                dst_j2 = iy2 - dest_y*ny
+
+                dst_k1 = iz1 - dest_z*nz
+                dst_k2 = iz2 - dest_z*nz
+
+                dest_coords = (/dest_x,dest_y,dest_z/)
+                call MPI_Cart_rank(comm3d,dest_coords,dest_rank,err)
+
+                tmp_send_dest(nsend_rho_blocks) = dest_rank
+
+                tmp_send_src_i1(nsend_rho_blocks) = src_i1
+                tmp_send_src_i2(nsend_rho_blocks) = src_i2
+                tmp_send_src_j1(nsend_rho_blocks) = src_j1
+                tmp_send_src_j2(nsend_rho_blocks) = src_j2
+                tmp_send_src_k1(nsend_rho_blocks) = src_k1
+                tmp_send_src_k2(nsend_rho_blocks) = src_k2
+
+                tmp_send_dst_i1(nsend_rho_blocks) = dst_i1
+                tmp_send_dst_i2(nsend_rho_blocks) = dst_i2
+                tmp_send_dst_j1(nsend_rho_blocks) = dst_j1
+                tmp_send_dst_j2(nsend_rho_blocks) = dst_j2
+                tmp_send_dst_k1(nsend_rho_blocks) = dst_k1
+                tmp_send_dst_k2(nsend_rho_blocks) = dst_k2
+
+                tmp_send_nblock(nsend_rho_blocks) = &
+                     (src_i2-src_i1+1) * &
+                     (src_j2-src_j1+1) * &
+                     (src_k2-src_k1+1)
+
+             endif
+
+          enddo
+       enddo
+    enddo
+
+    ! Allocate exact-size send metadata arrays.
+
+    allocate(send_dest(nsend_rho_blocks))
+    allocate(send_block_id(nsend_rho_blocks))
+    allocate(send_nblock(nsend_rho_blocks))
+
+    allocate(send_src_i1(nsend_rho_blocks), send_src_i2(nsend_rho_blocks))
+    allocate(send_src_j1(nsend_rho_blocks), send_src_j2(nsend_rho_blocks))
+    allocate(send_src_k1(nsend_rho_blocks), send_src_k2(nsend_rho_blocks))
+
+    allocate(send_dst_i1(nsend_rho_blocks), send_dst_i2(nsend_rho_blocks))
+    allocate(send_dst_j1(nsend_rho_blocks), send_dst_j2(nsend_rho_blocks))
+    allocate(send_dst_k1(nsend_rho_blocks), send_dst_k2(nsend_rho_blocks))
+
+    do b = 1, nsend_rho_blocks
+       send_dest(b) = tmp_send_dest(b)
+       send_block_id(b) = b
+       send_nblock(b) = tmp_send_nblock(b)
+
+       send_src_i1(b) = tmp_send_src_i1(b)
+       send_src_i2(b) = tmp_send_src_i2(b)
+       send_src_j1(b) = tmp_send_src_j1(b)
+       send_src_j2(b) = tmp_send_src_j2(b)
+       send_src_k1(b) = tmp_send_src_k1(b)
+       send_src_k2(b) = tmp_send_src_k2(b)
+
+       send_dst_i1(b) = tmp_send_dst_i1(b)
+       send_dst_i2(b) = tmp_send_dst_i2(b)
+       send_dst_j1(b) = tmp_send_dst_j1(b)
+       send_dst_j2(b) = tmp_send_dst_j2(b)
+       send_dst_k1(b) = tmp_send_dst_k1(b)
+       send_dst_k2(b) = tmp_send_dst_k2(b)
+    enddo
+
+    ! ============================================================
+    ! 2. Share metadata with all ranks
+    ! ============================================================
+
+    my_meta = 0
+    my_meta(1) = nsend_rho_blocks
+
+    do b = 1, nsend_rho_blocks
+
+       offset = 1 + (b-1)*meta_size
+
+       my_meta(offset+1)  = send_dest(b)
+       my_meta(offset+2)  = send_src_i1(b)
+       my_meta(offset+3)  = send_src_i2(b)
+       my_meta(offset+4)  = send_src_j1(b)
+       my_meta(offset+5)  = send_src_j2(b)
+       my_meta(offset+6)  = send_src_k1(b)
+       my_meta(offset+7)  = send_src_k2(b)
+       my_meta(offset+8)  = send_dst_i1(b)
+       my_meta(offset+9)  = send_dst_i2(b)
+       my_meta(offset+10) = send_dst_j1(b)
+       my_meta(offset+11) = send_dst_j2(b)
+       my_meta(offset+12) = send_dst_k1(b)
+       my_meta(offset+13) = send_dst_k2(b)
+       my_meta(offset+14) = send_nblock(b)
+
+    enddo
+
+    allocate(all_meta(1 + meta_size*max_send_blocks, nprocs))
+
+    call MPI_Allgather(my_meta, 1 + meta_size*max_send_blocks, MPI_INTEGER, &
+                       all_meta, 1 + meta_size*max_send_blocks, MPI_INTEGER, &
+                       comm3d, err)
+
+    ! ============================================================
+    ! 3. Count receives for this rank
+    ! ============================================================
+
+    recv_count = 0
+
+    do p = 1, nprocs
+       nblocks_p = all_meta(1,p)
+
+       do b = 1, nblocks_p
+          offset = 1 + (b-1)*meta_size
+
+          if (all_meta(offset+1,p) == rank .and. (p-1) /= rank) then
+             recv_count = recv_count + 1
+          endif
+       enddo
+    enddo
+
+    nrecv_rho_blocks = recv_count
+
+    allocate(recv_source(nrecv_rho_blocks))
+    allocate(recv_block_id(nrecv_rho_blocks))
+    allocate(recv_nblock(nrecv_rho_blocks))
+
+    allocate(recv_dst_i1(nrecv_rho_blocks), recv_dst_i2(nrecv_rho_blocks))
+    allocate(recv_dst_j1(nrecv_rho_blocks), recv_dst_j2(nrecv_rho_blocks))
+    allocate(recv_dst_k1(nrecv_rho_blocks), recv_dst_k2(nrecv_rho_blocks))
+
+    recv_count = 0
+
+    do p = 1, nprocs
+       nblocks_p = all_meta(1,p)
+
+       do b = 1, nblocks_p
+          offset = 1 + (b-1)*meta_size
+
+          if (all_meta(offset+1,p) == rank .and. (p-1) /= rank) then
+
+             recv_count = recv_count + 1
+
+             recv_source(recv_count)   = p - 1
+             recv_block_id(recv_count) = b
+             recv_nblock(recv_count)   = all_meta(offset+14,p)
+
+             recv_dst_i1(recv_count) = all_meta(offset+8,p)
+             recv_dst_i2(recv_count) = all_meta(offset+9,p)
+             recv_dst_j1(recv_count) = all_meta(offset+10,p)
+             recv_dst_j2(recv_count) = all_meta(offset+11,p)
+             recv_dst_k1(recv_count) = all_meta(offset+12,p)
+             recv_dst_k2(recv_count) = all_meta(offset+13,p)
+
+          endif
+       enddo
+    enddo
+
+    ! ============================================================
+    ! 4. Allocate persistent buffers and requests
+    ! ============================================================
+
+    allocate(sendbuf(nsend_rho_blocks))
+    allocate(recvbuf(nrecv_rho_blocks))
+
+    do b = 1, nsend_rho_blocks
+       if (send_dest(b) /= rank) then
+          allocate(sendbuf(b)%data(send_nblock(b)))
+       endif
+    enddo
+
+    do b = 1, nrecv_rho_blocks
+       allocate(recvbuf(b)%data(recv_nblock(b)))
+    enddo
+
+    allocate(send_req(nsend_rho_blocks))
+    allocate(recv_req(nrecv_rho_blocks))
+
+    density_redistribution_ready = .true.
+
+    deallocate(all_meta)
+
+#endif
+
+end subroutine setup_density_redistribution
+
+subroutine setup_phi_prolongation_redistribution()
+
+    use parameters, only: nx, ny, nz, mpix, mpiy, mpiz
+    use globals, only: coords, rank, comm3d, err
+    use density_redistribution_data
+
+    implicit none
+
+#ifdef MPIP
+
+	include "mpif.h"
+
+    integer :: NXG, NYG, NZG
+    integer :: nxh, nyh, nzh
+    integer :: nxq, nyq, nzq
+    integer :: ioff, joff, koff
+
+    integer :: need_x1, need_x2
+    integer :: need_y1, need_y2
+    integer :: need_z1, need_z2
+
+    integer :: src_x_min, src_x_max
+    integer :: src_y_min, src_y_max
+    integer :: src_z_min, src_z_max
+
+    integer :: src_x, src_y, src_z
+    integer :: src_rank
+    integer :: src_coords(3)
+
+    integer :: owner_x1, owner_x2
+    integer :: owner_y1, owner_y2
+    integer :: owner_z1, owner_z2
+
+    integer :: ix1, ix2, iy1, iy2, iz1, iz2
+
+    integer :: src_i1, src_i2, src_j1, src_j2, src_k1, src_k2
+    integer :: dst_i1, dst_i2, dst_j1, dst_j2, dst_k1, dst_k2
+
+    integer :: nprocs
+    integer :: b, p, offset, nblocks_p
+    integer :: send_count
+
+    integer :: my_meta(1 + phi_meta_size*max_phi_recv_blocks)
+    integer, allocatable :: all_meta(:,:)
+
+    call MPI_Comm_size(comm3d, nprocs, err)
+
+    NXG = nx*mpix
+    NYG = ny*mpiy
+    NZG = nz*mpiz
+
+    nxh = nx/2
+    nyh = ny/2
+    nzh = nz/2
+
+    nxq = nx/4
+    nyq = ny/4
+    nzq = nz/4
+
+    ioff = NXG/4
+    joff = NYG/4
+    koff = NZG/4
+
+    ! ============================================================
+    ! 1. Este rank hidro calcula qué bloques de PHI_ext necesita.
+    !
+    ! Para la prolongación corregida que usa ic e ic+1,
+    ! necesitamos llenar localmente:
+    !
+    !   nx/4 : nx/4 + nx/2 + 1
+    !
+    ! Por eso el bloque global requerido es:
+    !
+    !   ioff + coords*nxh : ioff + (coords+1)*nxh + 1
+    ! ============================================================
+
+    need_x1 = ioff + coords(0)*nxh
+    need_x2 = ioff + (coords(0)+1)*nxh + 1
+
+    need_y1 = joff + coords(1)*nyh
+    need_y2 = joff + (coords(1)+1)*nyh + 1
+
+    need_z1 = koff + coords(2)*nzh
+    need_z2 = koff + (coords(2)+1)*nzh + 1
+
+    src_x_min = (need_x1 - 1)/nx
+    src_x_max = (need_x2 - 1)/nx
+
+    src_y_min = (need_y1 - 1)/ny
+    src_y_max = (need_y2 - 1)/ny
+
+    src_z_min = (need_z1 - 1)/nz
+    src_z_max = (need_z2 - 1)/nz
+
+    nrecv_phi_blocks = 0
+
+    do src_x = src_x_min, src_x_max
+       do src_y = src_y_min, src_y_max
+          do src_z = src_z_min, src_z_max
+
+             owner_x1 = src_x*nx + 1
+             owner_x2 = (src_x+1)*nx
+
+             owner_y1 = src_y*ny + 1
+             owner_y2 = (src_y+1)*ny
+
+             owner_z1 = src_z*nz + 1
+             owner_z2 = (src_z+1)*nz
+
+             ix1 = max(need_x1, owner_x1)
+             ix2 = min(need_x2, owner_x2)
+
+             iy1 = max(need_y1, owner_y1)
+             iy2 = min(need_y2, owner_y2)
+
+             iz1 = max(need_z1, owner_z1)
+             iz2 = min(need_z2, owner_z2)
+
+             if (ix1 <= ix2 .and. iy1 <= iy2 .and. iz1 <= iz2) then
+
+                nrecv_phi_blocks = nrecv_phi_blocks + 1
+
+                if (nrecv_phi_blocks > max_phi_recv_blocks) then
+                   print *, "ERROR: too many phi recv blocks"
+                   stop
+                endif
+
+             endif
+
+          enddo
+       enddo
+    enddo
+
+    allocate(phi_recv_source(nrecv_phi_blocks))
+    allocate(phi_recv_block_id(nrecv_phi_blocks))
+    allocate(phi_recv_nblock(nrecv_phi_blocks))
+
+    allocate(phi_recv_dst_i1(nrecv_phi_blocks), phi_recv_dst_i2(nrecv_phi_blocks))
+    allocate(phi_recv_dst_j1(nrecv_phi_blocks), phi_recv_dst_j2(nrecv_phi_blocks))
+    allocate(phi_recv_dst_k1(nrecv_phi_blocks), phi_recv_dst_k2(nrecv_phi_blocks))
+
+	allocate(phi_recv_src_i1(nrecv_phi_blocks), phi_recv_src_i2(nrecv_phi_blocks))
+	allocate(phi_recv_src_j1(nrecv_phi_blocks), phi_recv_src_j2(nrecv_phi_blocks))
+	allocate(phi_recv_src_k1(nrecv_phi_blocks), phi_recv_src_k2(nrecv_phi_blocks))
+
+    my_meta = 0
+    my_meta(1) = nrecv_phi_blocks
+
+    b = 0
+
+    do src_x = src_x_min, src_x_max
+       do src_y = src_y_min, src_y_max
+          do src_z = src_z_min, src_z_max
+
+             owner_x1 = src_x*nx + 1
+             owner_x2 = (src_x+1)*nx
+
+             owner_y1 = src_y*ny + 1
+             owner_y2 = (src_y+1)*ny
+
+             owner_z1 = src_z*nz + 1
+             owner_z2 = (src_z+1)*nz
+
+             ix1 = max(need_x1, owner_x1)
+             ix2 = min(need_x2, owner_x2)
+
+             iy1 = max(need_y1, owner_y1)
+             iy2 = min(need_y2, owner_y2)
+
+             iz1 = max(need_z1, owner_z1)
+             iz2 = min(need_z2, owner_z2)
+
+             if (ix1 <= ix2 .and. iy1 <= iy2 .and. iz1 <= iz2) then
+
+                b = b + 1
+
+                src_coords = (/src_x,src_y,src_z/)
+                call MPI_Cart_rank(comm3d, src_coords, src_rank, err)
+
+                ! Índices fuente en el rank que posee PHI extendido.
+                src_i1 = ix1 - src_x*nx
+                src_i2 = ix2 - src_x*nx
+
+                src_j1 = iy1 - src_y*ny
+                src_j2 = iy2 - src_y*ny
+
+                src_k1 = iz1 - src_z*nz
+                src_k2 = iz2 - src_z*nz
+
+                ! Índices destino en phi_ext_local del rank hidro.
+                dst_i1 = nxq + (ix1 - need_x1)
+                dst_i2 = nxq + (ix2 - need_x1)
+
+                dst_j1 = nyq + (iy1 - need_y1)
+                dst_j2 = nyq + (iy2 - need_y1)
+
+                dst_k1 = nzq + (iz1 - need_z1)
+                dst_k2 = nzq + (iz2 - need_z1)
+
+                phi_recv_source(b) = src_rank
+                phi_recv_block_id(b) = b
+
+                phi_recv_dst_i1(b) = dst_i1
+                phi_recv_dst_i2(b) = dst_i2
+                phi_recv_dst_j1(b) = dst_j1
+                phi_recv_dst_j2(b) = dst_j2
+                phi_recv_dst_k1(b) = dst_k1
+                phi_recv_dst_k2(b) = dst_k2
+
+				phi_recv_src_i1(b) = src_i1
+				phi_recv_src_i2(b) = src_i2
+
+				phi_recv_src_j1(b) = src_j1
+				phi_recv_src_j2(b) = src_j2
+
+				phi_recv_src_k1(b) = src_k1
+				phi_recv_src_k2(b) = src_k2
+
+                phi_recv_nblock(b) = &
+                     (src_i2-src_i1+1) * &
+                     (src_j2-src_j1+1) * &
+                     (src_k2-src_k1+1)
+
+                ! Metadata que todos compartirán.
+                ! Ojo: desde el punto de vista global,
+                ! esta metadata describe una petición:
+                !
+                !   source rank = src_rank
+                !   destination rank = rank
+                !
+                offset = 1 + (b-1)*phi_meta_size
+
+                my_meta(offset+1)  = src_rank
+                my_meta(offset+2)  = rank
+
+                my_meta(offset+3)  = src_i1
+                my_meta(offset+4)  = src_i2
+                my_meta(offset+5)  = src_j1
+                my_meta(offset+6)  = src_j2
+                my_meta(offset+7)  = src_k1
+                my_meta(offset+8)  = src_k2
+
+                my_meta(offset+9)  = dst_i1
+                my_meta(offset+10) = dst_i2
+                my_meta(offset+11) = dst_j1
+                my_meta(offset+12) = dst_j2
+                my_meta(offset+13) = dst_k1
+                my_meta(offset+14) = dst_k2
+
+             endif
+
+          enddo
+       enddo
+    enddo
+
+    ! ============================================================
+    ! 2. Compartir las peticiones con todos los ranks.
+    ! ============================================================
+
+    allocate(all_meta(1 + phi_meta_size*max_phi_recv_blocks, nprocs))
+
+    call MPI_Allgather(my_meta, 1 + phi_meta_size*max_phi_recv_blocks, MPI_INTEGER, &
+                       all_meta, 1 + phi_meta_size*max_phi_recv_blocks, MPI_INTEGER, &
+                       comm3d, err)
+
+    ! ============================================================
+    ! 3. Contar cuántos bloques debe enviar este rank.
+    ! ============================================================
+
+    send_count = 0
+
+    do p = 1, nprocs
+
+       nblocks_p = all_meta(1,p)
+
+       do b = 1, nblocks_p
+
+          offset = 1 + (b-1)*phi_meta_size
+
+          src_rank = all_meta(offset+1,p)
+
+          if (src_rank == rank .and. (p-1) /= rank) then
+             send_count = send_count + 1
+          endif
+
+       enddo
+    enddo
+
+    nsend_phi_blocks = send_count
+
+    allocate(phi_send_dest(nsend_phi_blocks))
+    allocate(phi_send_block_id(nsend_phi_blocks))
+    allocate(phi_send_nblock(nsend_phi_blocks))
+
+    allocate(phi_send_src_i1(nsend_phi_blocks), phi_send_src_i2(nsend_phi_blocks))
+    allocate(phi_send_src_j1(nsend_phi_blocks), phi_send_src_j2(nsend_phi_blocks))
+    allocate(phi_send_src_k1(nsend_phi_blocks), phi_send_src_k2(nsend_phi_blocks))
+
+    allocate(phi_send_dst_i1(nsend_phi_blocks), phi_send_dst_i2(nsend_phi_blocks))
+    allocate(phi_send_dst_j1(nsend_phi_blocks), phi_send_dst_j2(nsend_phi_blocks))
+    allocate(phi_send_dst_k1(nsend_phi_blocks), phi_send_dst_k2(nsend_phi_blocks))
+
+    send_count = 0
+
+    do p = 1, nprocs
+
+       nblocks_p = all_meta(1,p)
+
+       do b = 1, nblocks_p
+
+          offset = 1 + (b-1)*phi_meta_size
+
+          src_rank = all_meta(offset+1,p)
+
+          if (src_rank == rank .and. (p-1) /= rank) then
+
+             send_count = send_count + 1
+
+             phi_send_dest(send_count) = all_meta(offset+2,p)
+             phi_send_block_id(send_count) = b
+
+             phi_send_src_i1(send_count) = all_meta(offset+3,p)
+             phi_send_src_i2(send_count) = all_meta(offset+4,p)
+             phi_send_src_j1(send_count) = all_meta(offset+5,p)
+             phi_send_src_j2(send_count) = all_meta(offset+6,p)
+             phi_send_src_k1(send_count) = all_meta(offset+7,p)
+             phi_send_src_k2(send_count) = all_meta(offset+8,p)
+
+             phi_send_dst_i1(send_count) = all_meta(offset+9,p)
+             phi_send_dst_i2(send_count) = all_meta(offset+10,p)
+             phi_send_dst_j1(send_count) = all_meta(offset+11,p)
+             phi_send_dst_j2(send_count) = all_meta(offset+12,p)
+             phi_send_dst_k1(send_count) = all_meta(offset+13,p)
+             phi_send_dst_k2(send_count) = all_meta(offset+14,p)
+
+             phi_send_nblock(send_count) = &
+                  (phi_send_src_i2(send_count)-phi_send_src_i1(send_count)+1) * &
+                  (phi_send_src_j2(send_count)-phi_send_src_j1(send_count)+1) * &
+                  (phi_send_src_k2(send_count)-phi_send_src_k1(send_count)+1)
+
+          endif
+
+       enddo
+    enddo
+
+    ! ============================================================
+    ! 4. Buffers persistentes.
+    ! ============================================================
+
+    allocate(phi_recvbuf(nrecv_phi_blocks))
+    allocate(phi_sendbuf(nsend_phi_blocks))
+
+    do b = 1, nrecv_phi_blocks
+       if (phi_recv_source(b) /= rank) then
+          allocate(phi_recvbuf(b)%data(phi_recv_nblock(b)))
+       endif
+    enddo
+
+    do b = 1, nsend_phi_blocks
+       allocate(phi_sendbuf(b)%data(phi_send_nblock(b)))
+    enddo
+
+    allocate(phi_recv_req(nrecv_phi_blocks))
+    allocate(phi_send_req(nsend_phi_blocks))
+
+    phi_redistribution_ready = .true.
+
+    deallocate(all_meta)
+
+#endif
+
+end subroutine setup_phi_prolongation_redistribution
+
+subroutine redistribute_density_blocks(dens)
+
+    use parameters, only: nx, ny, nz, mpi_real_kind
+    use globals, only: rank, comm3d, err
+    use density_redistribution_data
+
+    implicit none
+
+    real, intent(inout) :: dens(0:nx+1,0:ny+1,0:nz+1)
+
+#ifdef MPIP
+
+	include "mpif.h"
+
+    real, allocatable :: dens_old(:,:,:)
+    integer :: b, i, j, k, n
+    integer :: tag
+
+    if (.not. density_redistribution_ready) then
+       if (rank == 0) then
+          print *, "ERROR: redistribute_density_blocks called before setup_density_redistribution"
+       endif
+       stop
+    endif
+
+    allocate(dens_old(0:nx+1,0:ny+1,0:nz+1))
+
+    dens_old = dens
+    dens = 0.0
+
+    ! ============================================================
+    ! 1. Post receives
+    ! ============================================================
+
+    do b = 1, nrecv_rho_blocks
+
+       tag = tag_base + recv_block_id(b)
+
+       call MPI_Irecv(recvbuf(b)%data, recv_nblock(b), mpi_real_kind, &
+                      recv_source(b), tag, comm3d, recv_req(b), err)
+
+    enddo
+
+    ! ============================================================
+    ! 2. Local copies and nonlocal sends
+    ! ============================================================
+
+    do b = 1, nsend_rho_blocks
+
+       if (send_dest(b) == rank) then
+
+          dens(send_dst_i1(b):send_dst_i2(b), &
+               send_dst_j1(b):send_dst_j2(b), &
+               send_dst_k1(b):send_dst_k2(b)) = &
+          dens_old(send_src_i1(b):send_src_i2(b), &
+                   send_src_j1(b):send_src_j2(b), &
+                   send_src_k1(b):send_src_k2(b))
+
+          send_req(b) = MPI_REQUEST_NULL
+
+       else
+
+          n = 0
+
+          do k = send_src_k1(b), send_src_k2(b)
+             do j = send_src_j1(b), send_src_j2(b)
+                do i = send_src_i1(b), send_src_i2(b)
+                   n = n + 1
+                   sendbuf(b)%data(n) = dens_old(i,j,k)
+                enddo
+             enddo
+          enddo
+
+          tag = tag_base + send_block_id(b)
+
+          call MPI_Isend(sendbuf(b)%data, send_nblock(b), mpi_real_kind, &
+                         send_dest(b), tag, comm3d, send_req(b), err)
+
+       endif
+
+    enddo
+
+    ! ============================================================
+    ! 3. Wait receives and unpack
+    ! ============================================================
+
+    if (nrecv_rho_blocks > 0) then
+       call MPI_Waitall(nrecv_rho_blocks, recv_req, MPI_STATUSES_IGNORE, err)
+    endif
+
+    do b = 1, nrecv_rho_blocks
+
+       n = 0
+
+       do k = recv_dst_k1(b), recv_dst_k2(b)
+          do j = recv_dst_j1(b), recv_dst_j2(b)
+             do i = recv_dst_i1(b), recv_dst_i2(b)
+                n = n + 1
+                dens(i,j,k) = recvbuf(b)%data(n)
+             enddo
+          enddo
+       enddo
+
+    enddo
+
+    ! ============================================================
+    ! 4. Wait sends
+    ! ============================================================
+
+    if (nsend_rho_blocks > 0) then
+       call MPI_Waitall(nsend_rho_blocks, send_req, MPI_STATUSES_IGNORE, err)
+    endif
+
+    deallocate(dens_old)
+
+#else
+
+    return
+
+#endif
+
+end subroutine redistribute_density_blocks
+
+subroutine redistribute_phi_for_prolongation(phi_ext, phi_local)
+
+    use parameters, only: nx, ny, nz, mpi_real_kind
+    use globals, only: rank, comm3d, err
+    use density_redistribution_data
+
+    implicit none
+
+#ifdef MPIP
+    include "mpif.h"
+#endif
+
+    real, intent(in)    :: phi_ext(0:nx+1,0:ny+1,0:nz+1)
+    real, intent(inout) :: phi_local(0:nx+1,0:ny+1,0:nz+1)
+
+#ifdef MPIP
+
+    integer :: b, i, j, k, n
+    integer :: tag
+
+    if (.not. phi_redistribution_ready) then
+       if (rank == 0) then
+          print *, "ERROR: redistribute_phi_for_prolongation called before setup"
+       endif
+       stop
+    endif
+
+    phi_local = 0.0
+
+    ! ============================================================
+    ! 1. Post receives.
+    ! ============================================================
+
+    do b = 1, nrecv_phi_blocks
+
+       if (phi_recv_source(b) /= rank) then
+
+          tag = phi_tag_base + phi_recv_block_id(b)
+
+          call MPI_Irecv(phi_recvbuf(b)%data, phi_recv_nblock(b), mpi_real_kind, &
+                         phi_recv_source(b), tag, comm3d, phi_recv_req(b), err)
+
+       else
+
+          phi_recv_req(b) = MPI_REQUEST_NULL
+
+       endif
+
+    enddo
+
+    ! ============================================================
+    ! 2. Local copies and sends.
+    ! ============================================================
+
+    do b = 1, nrecv_phi_blocks
+
+          ! Local copy: este rank ya tiene el pedazo de PHI_ext que necesita.
+		if (phi_recv_source(b) == rank) then
+
+		phi_local(phi_recv_dst_i1(b):phi_recv_dst_i2(b), &
+					phi_recv_dst_j1(b):phi_recv_dst_j2(b), &
+					phi_recv_dst_k1(b):phi_recv_dst_k2(b)) = &
+		phi_ext(phi_recv_src_i1(b):phi_recv_src_i2(b), &
+				phi_recv_src_j1(b):phi_recv_src_j2(b), &
+				phi_recv_src_k1(b):phi_recv_src_k2(b))
+
+		endif
+
+    enddo
+
+    do b = 1, nsend_phi_blocks
+
+       n = 0
+
+       do k = phi_send_src_k1(b), phi_send_src_k2(b)
+          do j = phi_send_src_j1(b), phi_send_src_j2(b)
+             do i = phi_send_src_i1(b), phi_send_src_i2(b)
+                n = n + 1
+                phi_sendbuf(b)%data(n) = phi_ext(i,j,k)
+             enddo
+          enddo
+       enddo
+
+       tag = phi_tag_base + phi_send_block_id(b)
+
+       call MPI_Isend(phi_sendbuf(b)%data, phi_send_nblock(b), mpi_real_kind, &
+                      phi_send_dest(b), tag, comm3d, phi_send_req(b), err)
+
+    enddo
+
+    ! ============================================================
+    ! 3. Wait receives and unpack.
+    ! ============================================================
+
+    if (nrecv_phi_blocks > 0) then
+       call MPI_Waitall(nrecv_phi_blocks, phi_recv_req, MPI_STATUSES_IGNORE, err)
+    endif
+
+    do b = 1, nrecv_phi_blocks
+
+       if (phi_recv_source(b) /= rank) then
+
+          n = 0
+
+          do k = phi_recv_dst_k1(b), phi_recv_dst_k2(b)
+             do j = phi_recv_dst_j1(b), phi_recv_dst_j2(b)
+                do i = phi_recv_dst_i1(b), phi_recv_dst_i2(b)
+                   n = n + 1
+                   phi_local(i,j,k) = phi_recvbuf(b)%data(n)
+                enddo
+             enddo
+          enddo
+
+       endif
+
+    enddo
+
+    ! ============================================================
+    ! 4. Wait sends.
+    ! ============================================================
+
+    if (nsend_phi_blocks > 0) then
+       call MPI_Waitall(nsend_phi_blocks, phi_send_req, MPI_STATUSES_IGNORE, err)
+    endif
+
+#else
+
+    phi_local = phi_ext
+
+#endif
+
+end subroutine redistribute_phi_for_prolongation
+
+#endif
 end module
